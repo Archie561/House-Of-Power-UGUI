@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Resources Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Resources
+  m_TableCollectionNameGuidString: 01492e71ab09309489fb98a56a9982d4
+  m_Entries:
+  - m_Id: 108944384000
+    m_Key: Resources.Chemicals
+    m_Metadata:
+      m_Items: []
+  - m_Id: 353627496448
+    m_Key: Resources.Iron
+    m_Metadata:
+      m_Items: []
+  - m_Id: 384770203648
+    m_Key: Resources.Minerals
+    m_Metadata:
+      m_Items: []
+  - m_Id: 444274794496
+    m_Key: Resources.Oil
+    m_Metadata:
+      m_Items: []
+  - m_Id: 465208565760
+    m_Key: Resources.Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 495017484288
+    m_Key: Resources.Wood
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7318646612022526226
+  references:
+    version: 2
+    RefIds:
+    - rid: 7318646612022526226
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1765808306849
