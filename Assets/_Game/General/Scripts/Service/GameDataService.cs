@@ -11,8 +11,6 @@ public class GameDataService : MonoBehaviour
     private PlayerData _playerData;
     private string _saveFilePath;
 
-    private Dictionary<ResourceType, ResourceData> _resourceLookup;
-
     private void Awake()
     {
         if (Instance != null)
@@ -47,11 +45,7 @@ public class GameDataService : MonoBehaviour
                 Debug.LogError($"Failed to load player data: {e.Message}");
                 _playerData = GenerateNewPlayerData();
             }
-        }
-
-        _resourceLookup = new Dictionary<ResourceType, ResourceData>();
-        foreach (var res in _playerData.Resources)
-            _resourceLookup[res.Type] = res;       
+        }     
     }
 
     private PlayerData GenerateNewPlayerData()
@@ -93,11 +87,19 @@ public class GameDataService : MonoBehaviour
     }
 
     //ECONOMY SECTION//
-    
+    private Dictionary<ResourceType, ResourceData> _resourceLookup;
+
     public event Action<ResourceType> OnResourceChanged;
 
     private ResourceData GetResourceData(ResourceType type)
     {
+        if (_resourceLookup == null || _resourceLookup.Count == 0)
+        {
+            _resourceLookup = new Dictionary<ResourceType, ResourceData>();
+            foreach (var res in _playerData.Resources)
+                _resourceLookup[res.Type] = res;
+        }
+
         if (_resourceLookup.TryGetValue(type, out var resource))
         {
             return resource;
@@ -154,7 +156,7 @@ public class GameDataService : MonoBehaviour
         }
     }
 
-    public void AddResource(ResourceType type, int amount)
+    public void AddResources(ResourceType type, int amount)
     {
         var resource = GetResourceData(type);
         resource.Amount = Math.Min(resource.Amount + amount, resource.MaxCapacity);

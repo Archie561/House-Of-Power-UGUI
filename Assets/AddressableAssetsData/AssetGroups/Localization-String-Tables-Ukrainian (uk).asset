@@ -21,6 +21,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-uk
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ba8020679c576354bbe0864342dd7df0
+    m_Address: Popups_uk
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-uk
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f073b4aade6e43f4abd7cb66ce6593a1
     m_Address: TradesScreen_uk
     m_ReadOnly: 1
