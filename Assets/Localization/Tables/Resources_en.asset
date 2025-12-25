@@ -42,6 +42,10 @@ MonoBehaviour:
     m_Localized: Wood
     m_Metadata:
       m_Items: []
+  - m_Id: 3320524668624896
+    m_Localized: Gems
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

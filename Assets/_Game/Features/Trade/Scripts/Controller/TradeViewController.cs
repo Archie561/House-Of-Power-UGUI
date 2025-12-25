@@ -147,8 +147,7 @@ public class TradeViewController : MonoBehaviour
 
     private void OnUpgradeClicked(ResourceType type)
     {
-        Debug.Log($"Open Popup: Upgrade capacity for {type}?");
-        // PopupManager.ShowUpgradePopup(type, () => TradeLogicController.Instance.TryUpgradeCapacity(type));
+        //PopupController.Instance.ShowUpgradeStoragePopup(TradeLogicController.Instance.GetUpgradeStorageData(type), TradeLogicController.Instance.UpgradeCapacity(type), TradeLogicController.Instance.UpgradeCapacity(type, premiumCost: true));
     }
 
     private void OnOfferClicked(TradeOfferData offer)

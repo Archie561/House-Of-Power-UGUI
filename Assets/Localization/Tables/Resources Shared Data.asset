@@ -39,6 +39,10 @@ MonoBehaviour:
     m_Key: Resources.Wood
     m_Metadata:
       m_Items: []
+  - m_Id: 3320524668624896
+    m_Key: Resources.Gems
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

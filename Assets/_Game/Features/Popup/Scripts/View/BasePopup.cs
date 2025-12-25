@@ -1,22 +1,36 @@
 using System;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.UI;
 
+[RequireComponent(typeof(CanvasGroup))]
 public abstract class BasePopup : MonoBehaviour
-{
-    // Віртуальний метод відкриття (кожен попап може мати свої аргументи Setup)
-    public virtual void Open()
+{    
+    private CanvasGroup _canvasGroup;
+
+    protected const float ANIMATION_DURATION = 0.3f;
+
+    protected virtual void Awake() => _canvasGroup = GetComponent<CanvasGroup>();
+
+    public virtual void Open(Action onOpened = null)
     {
         gameObject.SetActive(true);
-        transform.DOScale(Vector3.one, 0.3f).From(Vector3.zero).SetEase(Ease.OutBack);
+        _canvasGroup.interactable = false;
+
+        transform.DOScale(Vector3.one, ANIMATION_DURATION).From(Vector3.zero).SetEase(Ease.OutBack).OnComplete(() =>
+        {
+            _canvasGroup.interactable = true;
+            onOpened?.Invoke();
+        });
     }
 
-    public virtual void Close()
+    public virtual void Close(Action onClosed = null)
     {
-        transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() =>
+        _canvasGroup.interactable = false;
+
+        transform.DOScale(Vector3.zero, ANIMATION_DURATION).SetEase(Ease.InBack).OnComplete(() =>
         {
             gameObject.SetActive(false);
+            onClosed?.Invoke();
         });
     }
 }

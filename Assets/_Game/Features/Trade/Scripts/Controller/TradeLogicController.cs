@@ -141,13 +141,33 @@ public class TradeLogicController : MonoBehaviour
         return true;
     }
 
-    public bool TryUpgradeCapacity(ResourceType type)
+    public UpgradeStorageData GetUpgradeStorageData(ResourceType type)
     {
-        int cost = 40; // FIX #7: Винести в окремий калькулятор згодом
-        if (!GameDataService.Instance.TrySpend(ResourceType.Money, cost)) return false;
+        // TODO: Винести в окремий калькулятор згодом
+        int currentCapacity = GameDataService.Instance.GetMaxCapacity(type);
+        int nextCapacity = currentCapacity + _capacityUpgradeAmount;
+        int defaultCost = 40;
+        int premiumCost = 2;
+        return new UpgradeStorageData
+        {
+            ResourceToUpgrade = type,
+            CurrentCapacity = currentCapacity,
+            NextCapacity = nextCapacity,
+            DefaultCostType = type,
+            DefaultCostAmount = defaultCost,
+            PremiumCostAmount = premiumCost
+        };
+    }
 
-        GameDataService.Instance.UpgradeCapacity(type, _capacityUpgradeAmount);
-        return true;
+    public void UpgradeCapacity(ResourceType type, bool premiumCost = false)
+    {
+
+        //int cost = 40; // TODO #7: Винести в окремий калькулятор згодом
+        //if (!GameDataService.Instance.TrySpend(ResourceType.Money, cost)) //success = false;
+
+        //GameDataService.Instance.UpgradeCapacity(type, _capacityUpgradeAmount);
+        //success = true;
+        //onUpgradeComplete?.Invoke(bool success);
     }
 
     #endregion

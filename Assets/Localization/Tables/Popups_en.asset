@@ -24,7 +24,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2335349702656
-    m_Localized: You will increase the capacity of the {0} storage
+    m_Localized: 'Storage: {0}. Upgrade capacity?'
     m_Metadata:
       m_Items:
       - rid: 8845453836125208655

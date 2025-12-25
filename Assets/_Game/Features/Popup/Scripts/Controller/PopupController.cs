@@ -1,3 +1,5 @@
+using DG.Tweening;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,16 +8,15 @@ public class PopupController : MonoBehaviour
     public static PopupController Instance { get; private set; }
 
     [Header("Overlay")]
-    [SerializeField] private GameObject _overlayBackground; // Чорна напівпрозора панель на весь екран
-    [SerializeField] private Button _overlayButton;         // Кнопка на ній же, щоб клік повз вікно закривав його
+    [SerializeField] private CanvasGroup _overlayCanvasGroup;
+    [SerializeField] private Button _overlayButton;
+    [SerializeField] private float _overlayFadeDuration = 0.2f;
 
     [Header("Registered Popups")]
-    //[SerializeField] private ConfirmationPopup _confirmationPopup;
-    // Тут будуть інші специфічні попапи
-    // [SerializeField] private TradeOfferPopup _tradeOfferPopup;
-    // [SerializeField] private UpgradePopup _upgradePopup;
+    [SerializeField] private UpgradeStoragePopup _upgradeStoragePopup;
 
     private BasePopup _currentPopup;
+    private bool _isBusy;
 
     private void Awake()
     {
@@ -26,52 +27,61 @@ public class PopupController : MonoBehaviour
         }
         Instance = this;
 
-        _overlayBackground.SetActive(false);
-        _overlayButton.onClick.AddListener(OnOverlayClicked);
+        SetupOverlay();
     }
 
-    // --- PUBLIC API ---
-
-    //public void ShowConfirmation(string title, string body, System.Action onConfirm, System.Action onCancel = null)
-    //{
-        //_confirmationPopup.Setup(title, body, onConfirm, onCancel);
-        //OpenPopup(_confirmationPopup);
-    //}
-
-    /* // Приклад для майбутнього кастомного попапа
-    public void ShowTradeOffer(TradeOfferData data, Action onAccept)
+    private void SetupOverlay()
     {
-        _tradeOfferPopup.Setup(data, onAccept);
-        OpenPopup(_tradeOfferPopup);
-    }
-    */
+        _overlayCanvasGroup.alpha = 0f;
+        _overlayCanvasGroup.blocksRaycasts = false;
+        _overlayCanvasGroup.gameObject.SetActive(false);
 
-    // --- INTERNAL LOGIC ---
-
-    private void OpenPopup(BasePopup popup)
-    {
-        if (_currentPopup != null)
-            return;
-
-        _currentPopup = popup;
-        _overlayBackground.SetActive(true);
-
-        popup.Open();
+        _overlayButton.onClick.AddListener(CloseCurrentPopup);
     }
 
-    public void CloseCurrentPopup()
+    public void ShowUpgradeStoragePopup(UpgradeStorageData data, Action onDefaultCostClick, Action onPremiumCostClick)
     {
-        if (_currentPopup != null)
+        _upgradeStoragePopup.Initialize(data, onDefaultCostClick, onPremiumCostClick);
+        OpenPopupInternal(_upgradeStoragePopup);
+    }
+
+    private void OpenPopupInternal(BasePopup popupToOpen)
+    {
+        if (_isBusy || _currentPopup != null)
         {
-            _currentPopup.Close();
-            _currentPopup = null;
+            Debug.LogWarning("Cannot open popup: Controller is busy or another popup is open.");
+            return;
         }
 
-        _overlayBackground.SetActive(false);
+        _isBusy = true;
+        _currentPopup = popupToOpen;
+
+        _overlayCanvasGroup.gameObject.SetActive(true);
+        _overlayCanvasGroup.blocksRaycasts = true;
+        _overlayCanvasGroup.DOFade(1f, _overlayFadeDuration);
+
+        popupToOpen.Open(onOpened: () =>
+        {
+            _isBusy = false;
+        });
     }
 
-    private void OnOverlayClicked()
+    private void CloseCurrentPopup()
     {
-        CloseCurrentPopup();
+        if (_isBusy || _currentPopup == null) return;
+
+        _isBusy = true;
+
+        _currentPopup.Close(onClosed: () =>
+        {
+            _currentPopup = null;
+
+            _overlayCanvasGroup.DOFade(0f, _overlayFadeDuration).OnComplete(() =>
+            {
+                _overlayCanvasGroup.gameObject.SetActive(false);
+                _overlayCanvasGroup.blocksRaycasts = false;
+                _isBusy = false;
+            });
+        });
     }
 }
