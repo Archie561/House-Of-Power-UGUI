@@ -56,21 +56,16 @@ public class GameDataService : MonoBehaviour
         List<ResourceData> resources = new List<ResourceData>();
         foreach (ResourceType resource in Enum.GetValues(typeof(ResourceType)))
         {
-            resources.Add(new ResourceData
-            {
-                Type = resource,
-                Amount = 0,
-                MaxCapacity = resource.IsCurrency() ? int.MaxValue : 100
-            });
+            resources.Add(new ResourceData(resource, 50, resource.IsCurrency() ? int.MaxValue : 100));
         }
 
         return new PlayerData
-        {
-            Resources = resources,
-            UnlockedStateIds = unlockedStates,
-            PurchasedCityIds = purchasedCities,
-            IsFirstSession = true
-        };
+        (
+            resources,
+            unlockedStates,
+            purchasedCities,
+            isFirstSession: true
+        );
     }
 
     public void SavePlayerData()
@@ -121,10 +116,15 @@ public class GameDataService : MonoBehaviour
         return GetResourceData(type).MaxCapacity;
     }
 
+    public bool CanAfford(ResourceType type, int amount)
+    {
+        return GetAmount(type) >= amount;
+    }
+
     public bool TrySpend(List<ResourceData> cost)
     {
         foreach (var item in cost)
-            if (GetAmount(item.Type) < item.Amount) return false;
+            if (!CanAfford(item.Type, item.Amount)) return false;
 
         foreach (var item in cost)
         {
@@ -137,9 +137,9 @@ public class GameDataService : MonoBehaviour
 
     public bool TrySpend(ResourceType type, int amount)
     {
-        var resource = GetResourceData(type);
-        if (resource.Amount < amount) return false;
+        if (!CanAfford(type, amount)) return false;
 
+        var resource = GetResourceData(type);
         resource.Amount -= amount;
         OnResourceChanged?.Invoke(type);
 

@@ -229,6 +229,7 @@ GameObject:
   - component: {fileID: 2900477755567439359}
   - component: {fileID: 6045526278319393518}
   - component: {fileID: 3990524729002182927}
+  - component: {fileID: 6381694806536472917}
   m_Layer: 5
   m_Name: CostButton
   m_TagString: Untagged
@@ -350,10 +351,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86f678655fd3f514d94669be5fe0994d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopupCostButton
+  _canvasGroup: {fileID: 6381694806536472917}
   _button: {fileID: 6045526278319393518}
   _resourceImage: {fileID: 2610006025529971133}
   _costText: {fileID: 7708321447542630624}
   _resourceLibrary: {fileID: 11400000, guid: 06c6dfd7c83e6354894d516c03398879, type: 2}
+--- !u!225 &6381694806536472917
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5371563130043236191}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &8378137357603939576
 GameObject:
   m_ObjectHideFlags: 0

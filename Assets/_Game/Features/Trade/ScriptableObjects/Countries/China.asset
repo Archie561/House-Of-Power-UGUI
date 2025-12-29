@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: China
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
   Id: 1
+  LocalizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+    m_TableEntryReference:
+      m_KeyId: 6978306048
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   FlagIcon: {fileID: -4059594220591428526, guid: 862476dc381e85944b1c4c576e1e5597, type: 3}
+  references:
+    version: 2
+    RefIds: []

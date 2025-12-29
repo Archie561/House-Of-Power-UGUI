@@ -9,4 +9,11 @@ public class ResourceData
     public ResourceType Type;
     public int Amount;
     public int MaxCapacity;
+
+    public ResourceData(ResourceType type, int amount, int maxCapacity = int.MaxValue)
+    {
+        Type = type;
+        Amount = amount;
+        MaxCapacity = maxCapacity;
+    }
 }

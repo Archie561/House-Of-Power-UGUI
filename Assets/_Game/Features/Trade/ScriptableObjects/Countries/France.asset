@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: France
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
   Id: 4
+  LocalizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+    m_TableEntryReference:
+      m_KeyId: 104034500608
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   FlagIcon: {fileID: -6636213522513565678, guid: 97df3e66562745f439e784822dba8189, type: 3}
+  references:
+    version: 2
+    RefIds: []

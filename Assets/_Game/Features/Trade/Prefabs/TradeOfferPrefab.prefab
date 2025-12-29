@@ -260,7 +260,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -340,4 +340,4 @@ MonoBehaviour:
   _importTransform: {fileID: 8730335170610169577}
   _exportTransform: {fileID: 2373953065912492265}
   _countryLibrary: {fileID: 11400000, guid: 9ece1e297e6e49d46ba07e65a1c7a525, type: 2}
-  _ResourceAmountPrefab: {fileID: 3766822340841118065, guid: 3b30f62fa616cca4ba5f13214b55ac2c, type: 3}
+  _resourceAmountPrefab: {fileID: 3766822340841118065, guid: 3b30f62fa616cca4ba5f13214b55ac2c, type: 3}

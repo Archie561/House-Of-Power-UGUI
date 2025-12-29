@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Countries_uk
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: uk
+  m_SharedData: {fileID: 11400000, guid: c8e4f5c5124412a4fb89e7b390ad117d, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 6978306048
+    m_Localized: "\u041A\u0438\u0442\u0430\u0439"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 104034500608
+    m_Localized: "\u0424\u0440\u0430\u043D\u0446\u0456\u044F"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 141133119488
+    m_Localized: "\u041D\u0456\u043C\u0435\u0447\u0447\u0438\u043D\u0430"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 169100738560
+    m_Localized: "\u0423\u043A\u0440\u0430\u0457\u043D\u0430"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 207214379008
+    m_Localized: "\u0412\u0435\u043B\u0438\u043A\u0430 \u0411\u0440\u0438\u0442\u0430\u043D\u0456\u044F"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: Ukraine
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
   Id: 0
+  LocalizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+    m_TableEntryReference:
+      m_KeyId: 169100738560
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   FlagIcon: {fileID: 8028638440467983891, guid: f35d70802b5f3384f871ed5ff60d16cc, type: 3}
+  references:
+    version: 2
+    RefIds: []

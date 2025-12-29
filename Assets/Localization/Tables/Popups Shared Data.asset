@@ -23,6 +23,38 @@ MonoBehaviour:
     m_Key: Popups.UpgradeStorageDescription
     m_Metadata:
       m_Items: []
+  - m_Id: 2836340667351040
+    m_Key: Popups.RefreshOffersHeader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2836608427524096
+    m_Key: Popups.RefreshOffersDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2901407643500544
+    m_Key: Popups.AcceptOfferHeader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2901485196181504
+    m_Key: Popups.AcceptOfferDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2902252128862208
+    m_Key: Popups.AcceptOfferImportHint
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2902335595511808
+    m_Key: Popups.AcceptOfferExportHint
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2909933136805888
+    m_Key: Popups.ConfirmLabel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2910012170076160
+    m_Key: Popups.CancelLabel
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

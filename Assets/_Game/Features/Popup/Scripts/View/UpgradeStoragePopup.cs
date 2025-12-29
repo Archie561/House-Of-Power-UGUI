@@ -15,20 +15,30 @@ public class UpgradeStoragePopup : BasePopup
     [Header("Config")]
     [SerializeField] private ResourceLibrary _resourceLibrary;
 
-    public void Initialize(UpgradeStorageData data, Action onDefaultCostClickCallback, Action onPremiumCostClickCallback)
+    public void Initialize(UpgradeStoragePopupData popupData)
     {
-        //локалізоване імя ресурсу який буде апргрейдитись
-        var definition = _resourceLibrary.GetDef(data.ResourceToUpgrade);
+        var definition = _resourceLibrary.GetDef(popupData.UpgradeData.StorageType);
         if (definition != null)
         {
             _descriptionLocalizer.StringReference.Arguments = new object[] { definition.LocalizedName.GetLocalizedString() };
             _descriptionLocalizer.RefreshString();
         }
 
-        _currentStorageCapacity.text = data.CurrentCapacity.ToString();
-        _upgradedStorageCapacity.text = data.NextCapacity.ToString();
+        _currentStorageCapacity.text = popupData.UpgradeData.CurrentCapacity.ToString();
+        _upgradedStorageCapacity.text = popupData.UpgradeData.NextCapacity.ToString();
 
-        _resourceCostButton.Initialize(data.DefaultCostType, data.DefaultCostAmount, onDefaultCostClickCallback);
-        _gemCostButton.Initialize(ResourceType.Gems, data.PremiumCostAmount, onPremiumCostClickCallback);
+        _resourceCostButton.Initialize(
+            popupData.UpgradeData.StorageType,
+            popupData.UpgradeData.DefaultCostAmount,
+            popupData.CanAffordDefault,
+            popupData.OnDefaultClick
+        );
+
+        _gemCostButton.Initialize(
+            ResourceType.Gems,
+            popupData.UpgradeData.PremiumCostAmount,
+            popupData.CanAffordPremium,
+            popupData.OnPremiumClick
+        );
     }
 }

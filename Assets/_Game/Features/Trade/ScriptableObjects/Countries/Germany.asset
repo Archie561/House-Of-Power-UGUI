@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: Germany
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
   Id: 3
+  LocalizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+    m_TableEntryReference:
+      m_KeyId: 141133119488
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   FlagIcon: {fileID: 6461303969856703070, guid: eb6b7e5bf32c7064aac95ee9f09397b6, type: 3}
+  references:
+    version: 2
+    RefIds: []

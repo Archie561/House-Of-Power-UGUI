@@ -1,5 +1,6 @@
 using DG.Tweening;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,9 +13,10 @@ public class PopupController : MonoBehaviour
     [SerializeField] private Button _overlayButton;
     [SerializeField] private float _overlayFadeDuration = 0.2f;
 
-    [Header("Registered Popups")]
-    [SerializeField] private UpgradeStoragePopup _upgradeStoragePopup;
+    [Header("Popups Register")]
+    [SerializeField] private List<BasePopup> _allPopups;
 
+    private Dictionary<Type, BasePopup> _popupRegistry;
     private BasePopup _currentPopup;
     private bool _isBusy;
 
@@ -27,61 +29,115 @@ public class PopupController : MonoBehaviour
         }
         Instance = this;
 
+        InitializeRegistry();
         SetupOverlay();
+    }
+
+    private void InitializeRegistry()
+    {
+        _popupRegistry = new Dictionary<Type, BasePopup>();
+        foreach (var popup in _allPopups)
+        {
+            if (popup == null) continue;
+
+            var type = popup.GetType();
+            if (!_popupRegistry.ContainsKey(type))
+            {
+                _popupRegistry.Add(type, popup);
+                popup.gameObject.SetActive(false);
+            }
+        }
     }
 
     private void SetupOverlay()
     {
         _overlayCanvasGroup.alpha = 0f;
-        _overlayCanvasGroup.blocksRaycasts = false;
         _overlayCanvasGroup.gameObject.SetActive(false);
-
-        _overlayButton.onClick.AddListener(CloseCurrentPopup);
+        _overlayButton.onClick.AddListener(OnOverlayClicked);
     }
 
-    public void ShowUpgradeStoragePopup(UpgradeStorageData data, Action onDefaultCostClick, Action onPremiumCostClick)
+    private void OnOverlayClicked()
     {
-        _upgradeStoragePopup.Initialize(data, onDefaultCostClick, onPremiumCostClick);
-        OpenPopupInternal(_upgradeStoragePopup);
+        if (_isBusy || _currentPopup == null) return;
+        if (_currentPopup.IsCloseOnOverlayAllowed) CloseCurrentPopup();
     }
 
-    private void OpenPopupInternal(BasePopup popupToOpen)
+    // --- Public API ---
+
+    public void Show<T>(Action<T> setupAction = null) where T : BasePopup
     {
         if (_isBusy || _currentPopup != null)
         {
-            Debug.LogWarning("Cannot open popup: Controller is busy or another popup is open.");
+            Debug.LogWarning($"[PopupController] Busy. Cannot show {typeof(T).Name}");
             return;
         }
 
-        _isBusy = true;
-        _currentPopup = popupToOpen;
-
-        _overlayCanvasGroup.gameObject.SetActive(true);
-        _overlayCanvasGroup.blocksRaycasts = true;
-        _overlayCanvasGroup.DOFade(1f, _overlayFadeDuration);
-
-        popupToOpen.Open(onOpened: () =>
+        var type = typeof(T);
+        if (_popupRegistry.TryGetValue(type, out var popupBase))
         {
-            _isBusy = false;
-        });
+            var popup = popupBase as T;
+            _isBusy = true;
+            _currentPopup = popup;
+
+            try
+            {
+                setupAction?.Invoke(popup);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[PopupController] Error initializing {type.Name}: {e}");
+                _isBusy = false;
+                _currentPopup = null;
+                return;
+            }
+
+            FadeOverlay(true); // Оверлей з'являється паралельно або трохи раніше
+
+            popup.Open(onOpened: () =>
+            {
+                _isBusy = false;
+            });
+        }
+        else
+        {
+            Debug.LogError($"[PopupController] Popup {type.Name} is not registered!");
+        }
     }
 
-    private void CloseCurrentPopup()
+    public void CloseCurrentPopup()
     {
-        if (_isBusy || _currentPopup == null) return;
+        if (_currentPopup == null) return;
 
         _isBusy = true;
 
         _currentPopup.Close(onClosed: () =>
         {
             _currentPopup = null;
-
-            _overlayCanvasGroup.DOFade(0f, _overlayFadeDuration).OnComplete(() =>
+            FadeOverlay(false, () =>
             {
-                _overlayCanvasGroup.gameObject.SetActive(false);
-                _overlayCanvasGroup.blocksRaycasts = false;
                 _isBusy = false;
             });
         });
+    }
+
+    // --- Internal Logic ---
+
+    private void FadeOverlay(bool show, Action onComplete = null)
+    {
+        _overlayCanvasGroup.DOKill();
+
+        if (show)
+        {
+            _overlayCanvasGroup.gameObject.SetActive(true);
+            _overlayCanvasGroup.DOFade(1f, _overlayFadeDuration);
+        }
+        else
+        {
+            _overlayCanvasGroup.DOFade(0f, _overlayFadeDuration).OnComplete(() =>
+            {
+                _overlayCanvasGroup.gameObject.SetActive(false);
+                onComplete?.Invoke();
+            });
+        }
     }
 }

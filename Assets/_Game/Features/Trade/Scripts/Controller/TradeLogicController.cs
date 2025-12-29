@@ -96,11 +96,11 @@ public class TradeLogicController : MonoBehaviour
             if (type.IsCurrency()) continue;
 
             resources.Add(new ResourceData
-            {
-                Type = type,
-                Amount = GameDataService.Instance.GetAmount(type),
-                MaxCapacity = GameDataService.Instance.GetMaxCapacity(type)
-            });
+            (
+                type,
+                GameDataService.Instance.GetAmount(type),
+                GameDataService.Instance.GetMaxCapacity(type)
+            ));
         }
         return resources.AsReadOnly();
     }
@@ -108,6 +108,17 @@ public class TradeLogicController : MonoBehaviour
     public bool IsReadyToRefresh() => _isReadyToRefresh;
     public float GetTimeRemaining() => _currentTimer;
     public int GetGemSkipCost() => _gemSkipCost;
+    public bool CanAfford(ResourceType type, int cost) => GameDataService.Instance.CanAfford(type, cost);
+    public bool CanAfford(List<ResourceData> costs)
+    {
+        foreach (var cost in costs)
+        {
+            if (!GameDataService.Instance.CanAfford(cost.Type, cost.Amount))
+                return false;
+        }
+        return true;
+    }
+    public DateTime GetNextRefreshTime() => DateTime.Now.AddSeconds(_currentTimer);
 
     public void RefreshOffersFree()
     {
@@ -148,26 +159,33 @@ public class TradeLogicController : MonoBehaviour
         int nextCapacity = currentCapacity + _capacityUpgradeAmount;
         int defaultCost = 40;
         int premiumCost = 2;
+        bool canAffordDefault = GameDataService.Instance.CanAfford(type, defaultCost);
+        bool canAffordPremium = GameDataService.Instance.CanAfford(ResourceType.Gems, premiumCost);
+
         return new UpgradeStorageData
-        {
-            ResourceToUpgrade = type,
-            CurrentCapacity = currentCapacity,
-            NextCapacity = nextCapacity,
-            DefaultCostType = type,
-            DefaultCostAmount = defaultCost,
-            PremiumCostAmount = premiumCost
-        };
+        (
+            type,
+            defaultCost,
+            premiumCost,
+            currentCapacity,
+            nextCapacity
+        );
     }
 
-    public void UpgradeCapacity(ResourceType type, bool premiumCost = false)
+    public void UpgradeCapacity(ResourceType type, bool premiumPurchase = false)
     {
+        int defaultCost = 40; // TODO #7: Винести в окремий калькулятор згодом
+        int premiumCost = 2;
+        if (!GameDataService.Instance.TrySpend(premiumPurchase ? ResourceType.Gems : type, premiumPurchase ? premiumCost : defaultCost))
+        {
+            Debug.LogWarning("Not Enaugh Resources");
+            //onUpgradeComplete?.Invoke(bool success = false);
+            return;
+        }
 
-        //int cost = 40; // TODO #7: Винести в окремий калькулятор згодом
-        //if (!GameDataService.Instance.TrySpend(ResourceType.Money, cost)) //success = false;
-
-        //GameDataService.Instance.UpgradeCapacity(type, _capacityUpgradeAmount);
-        //success = true;
-        //onUpgradeComplete?.Invoke(bool success);
+        GameDataService.Instance.UpgradeCapacity(type, _capacityUpgradeAmount);
+        Debug.Log("Success");
+        //onUpgradeComplete?.Invoke(bool success = true);
     }
 
     #endregion
@@ -181,12 +199,7 @@ public class TradeLogicController : MonoBehaviour
         int amount = GameDataService.Instance.GetAmount(type);
         int maxCapacity = GameDataService.Instance.GetMaxCapacity(type);
 
-        var data = new ResourceData
-        {
-            Type = type,
-            Amount = amount,
-            MaxCapacity = maxCapacity
-        };
+        var data = new ResourceData(type, amount, maxCapacity);
 
         OnTradeResourceChanged?.Invoke(data);
     }
@@ -233,24 +246,24 @@ public class TradeLogicController : MonoBehaviour
         var exports = GenerateRandomResourceList(resourcesList);
 
         return new TradeOfferData
-        {
-            CountryId = countryList[UnityEngine.Random.Range(0, countryList.Count)],
-            Import = imports,
-            Export = exports
-        };
+        (
+            countryList[UnityEngine.Random.Range(0, countryList.Count)],
+            imports,
+            exports
+        );
     }
 
     private List<ResourceData> GenerateRandomResourceList(List<ResourceType> allowedTypes)
     {
         var list = new List<ResourceData>();
-        int count = UnityEngine.Random.Range(1, 4);
+        int count = UnityEngine.Random.Range(2, 4);
         for (int i = 0; i < count; i++)
         {
             list.Add(new ResourceData
-            {
-                Type = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)],
-                Amount = UnityEngine.Random.Range(1, 100)
-            });
+            (
+                allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)],
+                UnityEngine.Random.Range(1, 100)
+            ));
         }
         return list;
     }

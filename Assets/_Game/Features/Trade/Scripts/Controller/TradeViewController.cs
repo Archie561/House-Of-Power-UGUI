@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -129,6 +130,35 @@ public class TradeViewController : MonoBehaviour
 
     #region User Interaction
 
+    private void OnUpgradeClicked(ResourceType type)
+    {
+        var upgradeData = TradeLogicController.Instance.GetUpgradeStorageData(type);
+        var canAffordDefault = TradeLogicController.Instance.CanAfford(upgradeData.StorageType, upgradeData.DefaultCostAmount);
+        var canAffordPremium = TradeLogicController.Instance.CanAfford(ResourceType.Gems, upgradeData.PremiumCostAmount);
+
+        var popupData = new UpgradeStoragePopupData
+        (
+            upgradeData,
+            canAffordDefault,
+            canAffordPremium,
+            onDefaultClick: () =>
+            {
+                TradeLogicController.Instance.UpgradeCapacity(type, premiumPurchase: false);
+                PopupController.Instance.CloseCurrentPopup();
+            },
+            onPremiumClick: () =>
+            {
+                TradeLogicController.Instance.UpgradeCapacity(type, premiumPurchase: true);
+                PopupController.Instance.CloseCurrentPopup();
+            }
+        );
+
+        PopupController.Instance.Show<UpgradeStoragePopup>(popup =>
+        {
+            popup.Initialize(popupData);
+        });
+    }
+
     private void OnRefreshButtonClicked()
     {
         bool isReady = TradeLogicController.Instance.IsReadyToRefresh();
@@ -136,27 +166,59 @@ public class TradeViewController : MonoBehaviour
         if (isReady)
         {
             TradeLogicController.Instance.RefreshOffersFree();
+            return;
         }
-        else
-        {
-            int cost = TradeLogicController.Instance.GetGemSkipCost();
-            Debug.Log($"Open Popup: Refresh now for {cost} gems?");
-            // PopupManager.ShowConfirmation($"Pay {cost} Gems?", () => TradeLogicController.Instance.TryRefreshWithGems());
-        }
-    }
 
-    private void OnUpgradeClicked(ResourceType type)
-    {
-        //PopupController.Instance.ShowUpgradeStoragePopup(TradeLogicController.Instance.GetUpgradeStorageData(type), TradeLogicController.Instance.UpgradeCapacity(type), TradeLogicController.Instance.UpgradeCapacity(type, premiumCost: true));
+        //додати конструктори у data класи щоб було видно які поля треба ініціалізувати
+        DateTime targetTime = TradeLogicController.Instance.GetNextRefreshTime();
+        var skipCost = TradeLogicController.Instance.GetGemSkipCost();
+        var canAfford = TradeLogicController.Instance.CanAfford(ResourceType.Gems, skipCost);
+        var popupData = new RefreshTradesPopupData
+        (
+            targetTime,
+            skipCost,
+            canAfford,
+            onSkipClick: () =>
+            {
+                TradeLogicController.Instance.TryRefreshWithGems();
+                PopupController.Instance.CloseCurrentPopup();
+            },
+            onTimerVisuallyFinished: () =>
+            {
+                if (TradeLogicController.Instance.IsReadyToRefresh())
+                {
+                    PopupController.Instance.CloseCurrentPopup();
+                }
+            }
+        );
+
+        PopupController.Instance.Show<RefreshTradesPopup>(popup =>
+        {
+            popup.Initialize(popupData);
+        });
     }
 
     private void OnOfferClicked(TradeOfferData offer)
     {
-        Debug.Log($"Open Popup: Accept trade?");
-        // PopupManager.ShowTradeConfirm(offer, () => TradeLogicController.Instance.TryExecuteTrade(offer));
-
-        // Тимчасово для тесту - виконуємо зразу
-        TradeLogicController.Instance.TryExecuteTrade(offer);
+        var canAfford = TradeLogicController.Instance.CanAfford(offer.Export);
+        var popupData = new AcceptOfferPopupData
+        (
+            offer,
+            canAfford,
+            onConfirmClick: () =>
+            {
+                TradeLogicController.Instance.TryExecuteTrade(offer);
+                PopupController.Instance.CloseCurrentPopup();
+            },
+            onCancelClick: () =>
+            {
+                PopupController.Instance.CloseCurrentPopup();
+            }
+        );
+        PopupController.Instance.Show<AcceptOfferPopup>(popup =>
+        {
+            popup.Initialize(popupData);
+        });
     }
 
     #endregion

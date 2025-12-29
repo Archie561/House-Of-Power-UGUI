@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: UnitedKingdom
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
   Id: 2
+  LocalizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+    m_TableEntryReference:
+      m_KeyId: 207214379008
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   FlagIcon: {fileID: 9201322150675859140, guid: 64520d87f40c6744da498f8b840edccc, type: 3}
+  references:
+    version: 2
+    RefIds: []

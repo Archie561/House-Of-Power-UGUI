@@ -28,6 +28,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 8845453836125208655
+  - m_Id: 2836340667351040
+    m_Localized: New trades update
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2836608427524096
+    m_Localized: Wait to update the list of offers or buy the update instantly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2901407643500544
+    m_Localized: Sign an offer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2901485196181504
+    m_Localized: '{0} proposes a deal'
+    m_Metadata:
+      m_Items:
+      - rid: 8845453836125208655
+  - m_Id: 2902252128862208
+    m_Localized: 'You''ll get:'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2902335595511808
+    m_Localized: 'You''ll give:'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2909933136805888
+    m_Localized: Confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2910012170076160
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -37,3 +70,4 @@ MonoBehaviour:
         m_Entries: 
         m_SharedEntries:
         - id: 2335349702656
+        - id: 2901485196181504

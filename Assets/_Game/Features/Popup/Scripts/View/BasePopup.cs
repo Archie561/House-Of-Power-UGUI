@@ -9,23 +9,27 @@ public abstract class BasePopup : MonoBehaviour
 
     protected const float ANIMATION_DURATION = 0.3f;
 
+    public bool IsCloseOnOverlayAllowed { get; protected set; } = true;
+
     protected virtual void Awake() => _canvasGroup = GetComponent<CanvasGroup>();
 
     public virtual void Open(Action onOpened = null)
     {
+        transform.DOKill();
         gameObject.SetActive(true);
-        _canvasGroup.interactable = false;
+        _canvasGroup.blocksRaycasts = false;
 
         transform.DOScale(Vector3.one, ANIMATION_DURATION).From(Vector3.zero).SetEase(Ease.OutBack).OnComplete(() =>
         {
-            _canvasGroup.interactable = true;
+            _canvasGroup.blocksRaycasts = true;
             onOpened?.Invoke();
         });
     }
 
     public virtual void Close(Action onClosed = null)
     {
-        _canvasGroup.interactable = false;
+        transform.DOKill();
+        _canvasGroup.blocksRaycasts = false;
 
         transform.DOScale(Vector3.zero, ANIMATION_DURATION).SetEase(Ease.InBack).OnComplete(() =>
         {
