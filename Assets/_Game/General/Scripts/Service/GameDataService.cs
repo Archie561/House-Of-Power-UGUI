@@ -1,174 +1,322 @@
+using Game.Features.Trade;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public class GameDataService : MonoBehaviour
+namespace Game.General
 {
-    public static GameDataService Instance { get; private set; }
-    
-    private PlayerData _playerData;
-    private string _saveFilePath;
-
-    private void Awake()
+    /// <summary>
+    /// The central service responsible for persistent data management (Save/Load) 
+    /// and core economy logic (Transactions, Resource adjustments).
+    /// Acts as a Single Source of Truth for the game state.
+    /// </summary>
+    public class GameDataService : MonoBehaviour
     {
-        if (Instance != null)
+        public static GameDataService Instance { get; private set; }
+
+        #region Configuration & State
+
+        [Header("Configuration")]
+        [SerializeField] private GameConfig _gameConfig;
+
+        private const string SAVE_FILE_NAME = "playerdata.json";
+
+        private PlayerData _playerData;
+        private string _saveFilePath;
+
+        // Lookup cache for O(1) resource access
+        private Dictionary<ResourceType, ResourceData> _resourceLookup;
+
+        #endregion
+
+        #region Events
+
+        public event Action<ResourceType> OnResourceChanged;
+
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Awake()
         {
-            Destroy(gameObject);
-            return;
+            if (Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            _saveFilePath = Path.Combine(Application.persistentDataPath, SAVE_FILE_NAME);
+
+            LoadPlayerData();
         }
 
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-
-        _saveFilePath = Path.Combine(Application.persistentDataPath, "playerdata.json");
-        LoadPlayerData();
-    }
-
-    private void LoadPlayerData()
-    {
-        if (!File.Exists(_saveFilePath))
+        // Critical for mobile: Save when user minimizes the app
+        private void OnApplicationPause(bool pauseStatus)
         {
-            _playerData = GenerateNewPlayerData();
+            if (pauseStatus)
+            {
+                SavePlayerData();
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
             SavePlayerData();
         }
-        else
+
+        #endregion
+
+        #region Save / Load System
+
+        private void LoadPlayerData()
         {
+            if (!File.Exists(_saveFilePath))
+            {
+                _playerData = GenerateNewPlayerData();
+                InitializeLookup(); // Build cache
+                SavePlayerData();
+            }
+            else
+            {
+                try
+                {
+                    string json = File.ReadAllText(_saveFilePath);
+                    _playerData = JsonConvert.DeserializeObject<PlayerData>(json);
+
+                    // Validate data integrity (in case save file is old version)
+                    if (_playerData == null) throw new Exception("Deserialized data is null");
+
+                    InitializeLookup(); // Build cache
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[GameDataService] Failed to load data: {e.Message}. Creating new.");
+                    _playerData = GenerateNewPlayerData();
+                    InitializeLookup();
+                    SavePlayerData(); // Overwrite corrupted file
+                }
+            }
+        }
+
+        public void SavePlayerData()
+        {
+            if (_playerData == null) return;
+
             try
             {
-                string json = File.ReadAllText(_saveFilePath);
-                _playerData = JsonConvert.DeserializeObject<PlayerData>(json);
+                string json = JsonConvert.SerializeObject(_playerData, Formatting.Indented);
+                File.WriteAllText(_saveFilePath, json);
+                Debug.Log("[GameDataService] Game Saved.");
             }
             catch (Exception e)
             {
-                Debug.LogError($"Failed to load player data: {e.Message}");
-                _playerData = GenerateNewPlayerData();
+                Debug.LogError($"[GameDataService] Failed to save data: {e.Message}");
             }
-        }     
-    }
-
-    private PlayerData GenerateNewPlayerData()
-    {
-        List<string> unlockedStates = new List<string> { "state_1", "state_2", "state_3" };
-        List<string> purchasedCities = new List<string> { "city_1", "city_2", "city_3" };
-
-        List<ResourceData> resources = new List<ResourceData>();
-        foreach (ResourceType resource in Enum.GetValues(typeof(ResourceType)))
-        {
-            resources.Add(new ResourceData(resource, 50, resource.IsCurrency() ? int.MaxValue : 100));
         }
 
-        return new PlayerData
-        (
-            resources,
-            unlockedStates,
-            purchasedCities,
-            isFirstSession: true
-        );
-    }
-
-    public void SavePlayerData()
-    {
-        try
+        private PlayerData GenerateNewPlayerData()
         {
-            string json = JsonConvert.SerializeObject(_playerData, Formatting.Indented);
-            File.WriteAllText(_saveFilePath, json);
+            // Initial Game State Configuration
+            List<ResourceData> resources = new List<ResourceData>();
+
+            if (_gameConfig.InitialResources != null)
+            {
+                foreach (var initData in _gameConfig.InitialResources)
+                {
+                    resources.Add(new ResourceData(initData.Type, initData.StartAmount, initData.StartCapacity));
+                }
+            }
+
+            // Ensure all enums exist (safety check)
+            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+            {
+                if (!resources.Exists(r => r.Type == type))
+                {
+                    int cap = type.IsCurrency() ? int.MaxValue : 100;
+                    resources.Add(new ResourceData(type, 0, cap));
+                }
+            }
+
+            List<string> unlockedStates = new List<string>();
+            List<string> purchasedCities = new List<string>();
+
+            DateTime nextRefresh = DateTime.Now;
+
+            return new PlayerData(
+                resources,
+                unlockedStates,
+                purchasedCities,
+                isFirstSession: true,
+                nextRefresh,
+                activeTradeOffers: null
+            );
         }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to save player data: {e.Message}");
-        }
-    }
 
-    //ECONOMY SECTION//
-    private Dictionary<ResourceType, ResourceData> _resourceLookup;
-
-    public event Action<ResourceType> OnResourceChanged;
-
-    private ResourceData GetResourceData(ResourceType type)
-    {
-        if (_resourceLookup == null || _resourceLookup.Count == 0)
+        private void InitializeLookup()
         {
             _resourceLookup = new Dictionary<ResourceType, ResourceData>();
+            if (_playerData?.Resources == null) return;
+
             foreach (var res in _playerData.Resources)
-                _resourceLookup[res.Type] = res;
+            {
+                if (!_resourceLookup.ContainsKey(res.Type))
+                {
+                    _resourceLookup.Add(res.Type, res);
+                }
+            }
         }
 
-        if (_resourceLookup.TryGetValue(type, out var resource))
+        #endregion
+
+        #region Economy Public API
+
+        public int GetAmount(ResourceType type)
         {
-            return resource;
+            return TryGetResourceData(type, out var data) ? data.Amount : 0;
         }
-        else
+
+        public int GetMaxCapacity(ResourceType type)
         {
-            Debug.LogError($"Resource type {type} not found in player data.");
-            return null;
+            return TryGetResourceData(type, out var data) ? data.MaxCapacity : 0;
         }
-    }
 
-    public int GetAmount(ResourceType type)
-    {
-        return GetResourceData(type).Amount;
-    }
-
-    public int GetMaxCapacity(ResourceType type)
-    {
-        return GetResourceData(type).MaxCapacity;
-    }
-
-    public bool CanAfford(ResourceType type, int amount)
-    {
-        return GetAmount(type) >= amount;
-    }
-
-    public bool TrySpend(List<ResourceData> cost)
-    {
-        foreach (var item in cost)
-            if (!CanAfford(item.Type, item.Amount)) return false;
-
-        foreach (var item in cost)
+        public bool CanAfford(ResourceType type, int amount)
         {
-            GetResourceData(item.Type).Amount -= item.Amount;
-            OnResourceChanged?.Invoke(item.Type);
+            if (TryGetResourceData(type, out var data))
+            {
+                return data.Amount >= amount;
+            }
+            return false;
         }
 
-        return true;
-    }
-
-    public bool TrySpend(ResourceType type, int amount)
-    {
-        if (!CanAfford(type, amount)) return false;
-
-        var resource = GetResourceData(type);
-        resource.Amount -= amount;
-        OnResourceChanged?.Invoke(type);
-
-        return true;
-    }
-
-    public void AddResources(List<ResourceData> income)
-    {
-        foreach (var item in income)
+        public bool CanAfford(IReadOnlyList<ResourceData> cost)
         {
-            var resource = GetResourceData(item.Type);
-            resource.Amount = Math.Min(resource.Amount + item.Amount, resource.MaxCapacity);
-            OnResourceChanged?.Invoke(item.Type);
+            if (cost == null || cost.Count == 0) return true;
+
+            foreach (var item in cost)
+            {
+                if (!CanAfford(item.Type, item.Amount)) return false;
+            }
+            return true;
         }
-    }
 
-    public void AddResources(ResourceType type, int amount)
-    {
-        var resource = GetResourceData(type);
-        resource.Amount = Math.Min(resource.Amount + amount, resource.MaxCapacity);
-        OnResourceChanged?.Invoke(type);
-    }
+        /// <summary>
+        /// Attempts to spend a single resource. Returns true if successful.
+        /// </summary>
+        public bool TrySpend(ResourceType type, int amount)
+        {
+            if (!TryGetResourceData(type, out var data)) return false;
+            if (data.Amount < amount) return false;
 
-    public void UpgradeCapacity(ResourceType type, int additionalCapacity)
-    {
-        if (type.IsCurrency()) return;
+            data.Amount -= amount;
+            OnResourceChanged?.Invoke(type);
 
-        var resource = GetResourceData(type);
-        resource.MaxCapacity += additionalCapacity;
-        OnResourceChanged?.Invoke(type);
+            // Optional: Auto-save on critical currency spending? 
+            // Better to rely on OnPause for performance.
+
+            return true;
+        }
+
+        /// <summary>
+        /// Transactional spend: Either ALL costs are paid, or NONE.
+        /// Prevents partial state updates if player can afford item A but not item B.
+        /// </summary>
+        public bool TrySpend(IReadOnlyList<ResourceData> cost)
+        {
+            if (!CanAfford(cost)) return false;
+
+            foreach (var item in cost)
+            {
+                // We utilize the private method or direct access since we already checked affordability
+                if (TryGetResourceData(item.Type, out var data))
+                {
+                    data.Amount -= item.Amount;
+                    OnResourceChanged?.Invoke(item.Type);
+                }
+            }
+
+            return true;
+        }
+
+        public void AddResource(ResourceType type, int amount)
+        {
+            if (amount <= 0) return;
+
+            if (TryGetResourceData(type, out var data))
+            {
+                // Cap at MaxCapacity
+                data.Amount = Math.Min(data.Amount + amount, data.MaxCapacity);
+                OnResourceChanged?.Invoke(type);
+            }
+        }
+
+        public void AddResources(IReadOnlyList<ResourceData> income)
+        {
+            if (income == null) return;
+
+            foreach (var item in income)
+            {
+                AddResource(item.Type, item.Amount);
+            }
+        }
+
+        public void UpgradeCapacity(ResourceType type, int additionalCapacity)
+        {
+            if (type.IsCurrency()) return; // Currencies usually don't have caps
+
+            if (TryGetResourceData(type, out var data))
+            {
+                data.MaxCapacity += additionalCapacity;
+                OnResourceChanged?.Invoke(type);
+
+                // Immediately save after an upgrade is a good practice
+                SavePlayerData();
+            }
+        }
+
+        public DateTime GetNextTradeRefreshTime()
+        {
+            return _playerData.NextTradeRefreshTime;
+        }
+
+        public void SetNextTradeRefreshTime(DateTime time)
+        {
+            _playerData.NextTradeRefreshTime = time;
+            SavePlayerData();
+        }
+
+        public List<TradeOfferData> GetActiveOffers()
+        {
+            return _playerData.ActiveTradeOffers;
+        }
+
+        public void SaveActiveOffers(List<TradeOfferData> offers)
+        {
+            _playerData.ActiveTradeOffers = new List<TradeOfferData>(offers);
+            SavePlayerData();
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private bool TryGetResourceData(ResourceType type, out ResourceData data)
+        {
+            if (_resourceLookup != null && _resourceLookup.TryGetValue(type, out data))
+            {
+                return true;
+            }
+
+            Debug.LogError($"[GameDataService] Resource {type} not found in lookup!");
+            data = null;
+            return false;
+        }
+
+        #endregion
     }
 }

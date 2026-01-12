@@ -9,20 +9,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ecdcffc2d38d1924c81399de64366bab, type: 3}
-  m_Name: Iron
-  m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
-  Type: 12
-  LocalizedName:
+  m_Script: {fileID: 11500000, guid: 1e946847c328cbd4296bfd951df39975, type: 3}
+  m_Name: France
+  m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
+  _id: 4
+  _localizedName:
     m_TableReference:
-      m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
+      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
     m_TableEntryReference:
-      m_KeyId: 353627496448
+      m_KeyId: 104034500608
       m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  Icon: {fileID: 4226397978021778064, guid: dcabf67fce422014bad3a8cc64d498dd, type: 3}
+  _flagIcon: {fileID: -6636213522513565678, guid: 97df3e66562745f439e784822dba8189, type: 3}
   references:
     version: 2
     RefIds: []

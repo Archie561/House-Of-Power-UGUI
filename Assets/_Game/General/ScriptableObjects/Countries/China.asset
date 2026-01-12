@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1e946847c328cbd4296bfd951df39975, type: 3}
-  m_Name: UnitedKingdom
+  m_Name: China
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
-  Id: 2
-  LocalizedName:
+  _id: 1
+  _localizedName:
     m_TableReference:
       m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
     m_TableEntryReference:
-      m_KeyId: 207214379008
+      m_KeyId: 6978306048
       m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  FlagIcon: {fileID: 9201322150675859140, guid: 64520d87f40c6744da498f8b840edccc, type: 3}
+  _flagIcon: {fileID: -4059594220591428526, guid: 862476dc381e85944b1c4c576e1e5597, type: 3}
   references:
     version: 2
     RefIds: []

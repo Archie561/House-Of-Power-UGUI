@@ -1,20 +1,26 @@
+using Game.Features.Trade;
 using System;
-using UnityEngine;
 
-public class UpgradeStoragePopupData
+namespace Game.Features.Popup
 {
-    public UpgradeStorageData UpgradeData;
-    public bool CanAffordDefault;
-    public bool CanAffordPremium;
-    public Action OnDefaultClick;
-    public Action OnPremiumClick;
-
-    public UpgradeStoragePopupData(UpgradeStorageData upgradeData, bool canAffordDefault, bool canAffordPremium, Action onDefaultClick, Action onPremiumClick)
+    /// <summary>
+    /// Data container for the Upgrade Storage Popup configuration.
+    /// </summary>
+    public class UpgradeStoragePopupData
     {
-        UpgradeData = upgradeData;
-        CanAffordDefault = canAffordDefault;
-        CanAffordPremium = canAffordPremium;
-        OnDefaultClick = onDefaultClick;
-        OnPremiumClick = onPremiumClick;
+        public UpgradeStorageData UpgradeData { get; }
+        public bool CanAffordDefault { get; }
+        public bool CanAffordPremium { get; }
+        public Action OnDefaultClick { get; }
+        public Action OnPremiumClick { get; }
+
+        public UpgradeStoragePopupData(UpgradeStorageData upgradeData, bool canAffordDefault, bool canAffordPremium, Action onDefaultClick, Action onPremiumClick)
+        {
+            UpgradeData = upgradeData;
+            CanAffordDefault = canAffordDefault;
+            CanAffordPremium = canAffordPremium;
+            OnDefaultClick = onDefaultClick;
+            OnPremiumClick = onPremiumClick;
+        }
     }
 }

@@ -1,18 +1,24 @@
+using Game.Features.Trade;
 using System;
-using UnityEngine;
 
-public class AcceptOfferPopupData
+namespace Game.Features.Popup
 {
-    public TradeOfferData OfferData;
-    public bool CanAfford;
-    public Action OnConfirmClick;
-    public Action OnCancelClick;
-
-    public AcceptOfferPopupData(TradeOfferData offerData, bool canAfford, Action onConfirmClick, Action onCancelClick)
+    /// <summary>
+    /// Data required to display and handle the Accept Offer Popup.
+    /// </summary>
+    public class AcceptOfferPopupData
     {
-        OfferData = offerData;
-        CanAfford = canAfford;
-        OnConfirmClick = onConfirmClick;
-        OnCancelClick = onCancelClick;
+        public TradeOfferData OfferData { get; }
+        public bool CanAfford { get; }
+        public Action OnConfirmClick { get; }
+        public Action OnCancelClick { get; }
+
+        public AcceptOfferPopupData(TradeOfferData offerData, bool canAfford, Action onConfirmClick, Action onCancelClick)
+        {
+            OfferData = offerData;
+            CanAfford = canAfford;
+            OnConfirmClick = onConfirmClick;
+            OnCancelClick = onCancelClick;
+        }
     }
 }

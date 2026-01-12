@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e946847c328cbd4296bfd951df39975, type: 3}
   m_Name: Ukraine
   m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
-  Id: 0
-  LocalizedName:
+  _id: 0
+  _localizedName:
     m_TableReference:
       m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
     m_TableEntryReference:
@@ -22,7 +22,7 @@ MonoBehaviour:
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  FlagIcon: {fileID: 8028638440467983891, guid: f35d70802b5f3384f871ed5ff60d16cc, type: 3}
+  _flagIcon: {fileID: 8028638440467983891, guid: f35d70802b5f3384f871ed5ff60d16cc, type: 3}
   references:
     version: 2
     RefIds: []

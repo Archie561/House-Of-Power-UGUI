@@ -9,20 +9,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e946847c328cbd4296bfd951df39975, type: 3}
-  m_Name: China
-  m_EditorClassIdentifier: Assembly-CSharp::CountryDefinition
-  Id: 1
-  LocalizedName:
+  m_Script: {fileID: 11500000, guid: ecdcffc2d38d1924c81399de64366bab, type: 3}
+  m_Name: Gems
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
+  _type: 1
+  _localizedName:
     m_TableReference:
-      m_TableCollectionName: GUID:c8e4f5c5124412a4fb89e7b390ad117d
+      m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
     m_TableEntryReference:
-      m_KeyId: 6978306048
+      m_KeyId: 3320524668624896
       m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  FlagIcon: {fileID: -4059594220591428526, guid: 862476dc381e85944b1c4c576e1e5597, type: 3}
+  _icon: {fileID: -6659377195072198445, guid: cc0778960782ca74dbdba3500eb38136, type: 3}
   references:
     version: 2
     RefIds: []

@@ -364,6 +364,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d379059ad2e9b44e895d2bcc9ed8360, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NavBarBackgroundAdjuster
+  _baseHeight: 263
 --- !u!1 &123817846
 GameObject:
   m_ObjectHideFlags: 0
@@ -4167,9 +4168,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ea36e532aeca6a49b9a50df66ccdfb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TradesController
-  _refreshCooldown: 20
-  _gemSkipCost: 5
-  _capacityUpgradeAmount: 100
 --- !u!1 &1094673567
 GameObject:
   m_ObjectHideFlags: 0
@@ -5639,6 +5637,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bc3d4e67ac6d14419cac48896e3ffd7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameDataController
+  _gameConfig: {fileID: 11400000, guid: 71728d857cec05c4c9986c16a2850278, type: 2}
 --- !u!4 &1578397704
 Transform:
   m_ObjectHideFlags: 0

@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ecdcffc2d38d1924c81399de64366bab, type: 3}
-  m_Name: Wood
+  m_Name: Oil
   m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
-  Type: 15
-  LocalizedName:
+  _type: 14
+  _localizedName:
     m_TableReference:
       m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
     m_TableEntryReference:
-      m_KeyId: 495017484288
+      m_KeyId: 444274794496
       m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  Icon: {fileID: 7440981132975211316, guid: ca279f422abe2fc46a7228f7dab745d6, type: 3}
+  _icon: {fileID: -5328104982336953044, guid: d5179588fa4804d4aab1ffdadb118739, type: 3}
   references:
     version: 2
     RefIds: []

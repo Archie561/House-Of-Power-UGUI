@@ -1,25 +1,36 @@
 using UnityEngine;
 
-[RequireComponent(typeof(RectTransform))]
-public class SafeAreaFitter : MonoBehaviour
+namespace Game.General.Helpers
 {
-    private void Awake()
+    /// <summary>
+    /// Adjusts the RectTransform anchors to fit within the device's Safe Area.
+    /// Useful for handling notches, rounded corners, and home bars on mobile devices.
+    /// Best attached to a full-screen "Container" panel inside the Canvas.
+    /// </summary>
+    [RequireComponent(typeof(RectTransform))]
+    public class SafeAreaFitter : MonoBehaviour
     {
-        var rectTransform = GetComponent<RectTransform>();
-        Rect safeArea = Screen.safeArea;
+        private void Awake()
+        {
+            var rectTransform = GetComponent<RectTransform>();
+            Rect safeArea = Screen.safeArea;
 
-        Vector2 anchorMin = safeArea.position;
-        Vector2 anchorMax = safeArea.position + safeArea.size;
+            // Convert Safe Area pixels to normalized coordinates (0 to 1)
+            Vector2 anchorMin = safeArea.position;
+            Vector2 anchorMax = safeArea.position + safeArea.size;
 
-        anchorMin.x /= Screen.width;
-        anchorMin.y /= Screen.height;
-        anchorMax.x /= Screen.width;
-        anchorMax.y /= Screen.height;
+            anchorMin.x /= Screen.width;
+            anchorMin.y /= Screen.height;
+            anchorMax.x /= Screen.width;
+            anchorMax.y /= Screen.height;
 
-        rectTransform.anchorMin = anchorMin;
-        rectTransform.anchorMax = anchorMax;
+            // Apply anchors
+            rectTransform.anchorMin = anchorMin;
+            rectTransform.anchorMax = anchorMax;
 
-        rectTransform.offsetMin = Vector2.zero;
-        rectTransform.offsetMax = Vector2.zero;
+            // Reset offsets so the rect snaps to the new anchors
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+        }
     }
 }

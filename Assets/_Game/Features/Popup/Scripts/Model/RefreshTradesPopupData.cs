@@ -1,19 +1,25 @@
 using System;
 
-public class RefreshTradesPopupData
+namespace Game.Features.Popup
 {
-    public DateTime TargetTime;
-    public int SkipCost;
-    public bool CanAfford;
-    public Action OnSkipClick;
-    public Action OnTimerVisuallyFinished;
-
-    public RefreshTradesPopupData(DateTime targetTime, int skipCost, bool canAfford, Action onSkipClick, Action onTimerVisuallyFinished)
+    /// <summary>
+    /// Data required for the Refresh Trades Popup, including timer logic and skip costs.
+    /// </summary>
+    public class RefreshTradesPopupData
     {
-        TargetTime = targetTime;
-        SkipCost = skipCost;
-        CanAfford = canAfford;
-        OnSkipClick = onSkipClick;
-        OnTimerVisuallyFinished = onTimerVisuallyFinished;
+        public DateTime TargetTime { get; }
+        public int SkipCost { get; }
+        public bool CanAfford { get; }
+        public Action OnSkipClick { get; }
+        public Action OnTimerVisuallyFinished { get; }
+
+        public RefreshTradesPopupData(DateTime targetTime, int skipCost, bool canAfford, Action onSkipClick, Action onTimerVisuallyFinished)
+        {
+            TargetTime = targetTime;
+            SkipCost = skipCost;
+            CanAfford = canAfford;
+            OnSkipClick = onSkipClick;
+            OnTimerVisuallyFinished = onTimerVisuallyFinished;
+        }
     }
 }

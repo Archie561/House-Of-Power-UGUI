@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ecdcffc2d38d1924c81399de64366bab, type: 3}
-  m_Name: Chemicals
+  m_Name: Stone
   m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
-  Type: 13
-  LocalizedName:
+  _type: 10
+  _localizedName:
     m_TableReference:
       m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
     m_TableEntryReference:
-      m_KeyId: 108944384000
+      m_KeyId: 465208565760
       m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
-  Icon: {fileID: -9091904610946242982, guid: f947f9591bd592e44bc2e35ccd60156c, type: 3}
+  _icon: {fileID: 5725184139431673129, guid: dfcd7113bf2189a48a4d21042e78362f, type: 3}
   references:
     version: 2
     RefIds: []
