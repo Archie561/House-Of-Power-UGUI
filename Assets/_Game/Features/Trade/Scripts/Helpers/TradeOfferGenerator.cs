@@ -12,38 +12,20 @@ namespace Game.Features.Trade
     /// </summary>
     public class TradeOfferGenerator
     {
-        // Item Count Configuration
-        private const int MIN_ITEMS_PER_SIDE = 2;
-        private const int MAX_ITEMS_PER_SIDE = 3;
-
-        // Capacity Load Factors (How much of the storage we want to fill/empty)
-        private const float MIN_LOAD_FACTOR = 0.1f; // 10% of storage
-        private const float MAX_LOAD_FACTOR = 0.3f; // 30% of storage
-
-        // Profitability Multipliers (Import / Export ratio)
-        private const float RATE_BAD_MIN = 0.6f;
-        private const float RATE_BAD_MAX = 0.8f;
-        private const float RATE_NORMAL_MIN = 0.9f;
-        private const float RATE_NORMAL_MAX = 1.1f;
-        private const float RATE_GOOD_MIN = 1.3f;
-        private const float RATE_GOOD_MAX = 1.8f;
-
-        // Probabilities (Must sum to 1.0)
-        private const float CHANCE_BAD = 0.4f;
-        private const float CHANCE_NORMAL = 0.3f;
-        // Remaining 0.3 is CHANCE_GOOD
-
-        // Limits
-        private const int MIN_TRANSACTION_AMOUNT = 10;
-
+        private OfferGenerationSettings _settings;
+        private readonly Func<ResourceType, int> _capacityProvider;
         private readonly List<ResourceType> _tradableResources;
         private readonly List<CountryId> _countries;
 
-        public TradeOfferGenerator()
+        public TradeOfferGenerator(OfferGenerationSettings settings, Func<ResourceType, int> capacityProvider)
         {
+            _settings = settings;
+
+            _capacityProvider = capacityProvider;
+
             _tradableResources = Enum.GetValues(typeof(ResourceType))
                 .Cast<ResourceType>()
-                .Where(t => !t.IsCurrency())
+                .Where(t => t.IsTradeGood())
                 .ToList();
 
             _countries = Enum.GetValues(typeof(CountryId))
@@ -59,8 +41,8 @@ namespace Game.Features.Trade
             // We need unique resources for export and import so they don't overlap.
             var shuffledRes = _tradableResources.OrderBy(x => UnityEngine.Random.value).ToList();
 
-            int exportCount = UnityEngine.Random.Range(MIN_ITEMS_PER_SIDE, MAX_ITEMS_PER_SIDE + 1); // +1 because upper bound is exclusive
-            int importCount = UnityEngine.Random.Range(MIN_ITEMS_PER_SIDE, MAX_ITEMS_PER_SIDE + 1);
+            int exportCount = UnityEngine.Random.Range(_settings.MinItemsPerSide, _settings.MaxItemsPerSide + 1); // +1 because upper bound is exclusive
+            int importCount = UnityEngine.Random.Range(_settings.MinItemsPerSide, _settings.MaxItemsPerSide + 1);
 
             // Validate counts against available definitions
             int maxTotal = shuffledRes.Count;
@@ -103,8 +85,8 @@ namespace Game.Features.Trade
             }
 
             // Ensure we don't go below minimums
-            if (targetExportAmount < MIN_TRANSACTION_AMOUNT) targetExportAmount = MIN_TRANSACTION_AMOUNT;
-            if (targetImportAmount < MIN_TRANSACTION_AMOUNT) targetImportAmount = MIN_TRANSACTION_AMOUNT;
+            if (targetExportAmount < _settings.MinTransactionAmount) targetExportAmount = _settings.MinTransactionAmount;
+            if (targetImportAmount < _settings.MinTransactionAmount) targetImportAmount = _settings.MinTransactionAmount;
 
             // 6. Distribute the calculated totals among the specific resources
             // We use weighted distribution based on individual resource capacity
@@ -123,13 +105,13 @@ namespace Game.Features.Trade
         {
             float roll = UnityEngine.Random.value;
 
-            if (roll < CHANCE_BAD)
-                return UnityEngine.Random.Range(RATE_BAD_MIN, RATE_BAD_MAX);
+            if (roll < _settings.ChanceBad)
+                return UnityEngine.Random.Range(_settings.RateBadMin, _settings.RateBadMax);
 
-            if (roll < CHANCE_BAD + CHANCE_NORMAL)
-                return UnityEngine.Random.Range(RATE_NORMAL_MIN, RATE_NORMAL_MAX);
+            if (roll < _settings.ChanceBad + _settings.ChanceNormal)
+                return UnityEngine.Random.Range(_settings.RateNormalMin, _settings.RateNormalMax);
 
-            return UnityEngine.Random.Range(RATE_GOOD_MIN, RATE_GOOD_MAX);
+            return UnityEngine.Random.Range(_settings.RateGoodMin, _settings.RateGoodMax);
         }
 
         /// <summary>
@@ -140,7 +122,7 @@ namespace Game.Features.Trade
             int total = 0;
             foreach (var type in types)
             {
-                total += GameDataService.Instance.GetMaxCapacity(type);
+                total += _capacityProvider(type);
             }
             return total;
         }
@@ -154,8 +136,8 @@ namespace Game.Features.Trade
             float total = 0;
             foreach (var type in types)
             {
-                int cap = GameDataService.Instance.GetMaxCapacity(type);
-                float load = UnityEngine.Random.Range(MIN_LOAD_FACTOR, MAX_LOAD_FACTOR);
+                int cap = _capacityProvider(type);
+                float load = UnityEngine.Random.Range(_settings.MinLoadFactor, _settings.MaxLoadFactor);
                 total += cap * load;
             }
             return Mathf.RoundToInt(total);
@@ -165,9 +147,9 @@ namespace Game.Features.Trade
         /// Distributes a total amount across resources, weighted by their storage capacity.
         /// This ensures we don't try to put 500 items into a 100-capacity storage.
         /// </summary>
-        private List<ResourceData> DistributeAmountByCapacity(int totalAmountToDistribute, List<ResourceType> types)
+        private List<ResourceAmount> DistributeAmountByCapacity(int totalAmountToDistribute, List<ResourceType> types)
         {
-            var result = new List<ResourceData>();
+            var result = new List<ResourceAmount>();
             int remainingToDistribute = totalAmountToDistribute;
 
             // Calculate total capacity of this group to determine weights
@@ -179,7 +161,7 @@ namespace Game.Features.Trade
             for (int i = 0; i < types.Count; i++)
             {
                 var type = types[i];
-                int typeCapacity = GameDataService.Instance.GetMaxCapacity(type);
+                int typeCapacity = _capacityProvider(type);
 
                 int amount;
 
@@ -208,7 +190,7 @@ namespace Game.Features.Trade
                 amount = Mathf.Min(amount, remainingToDistribute);
 
                 // Add to list
-                result.Add(new ResourceData(type, amount));
+                result.Add(new ResourceAmount(type, amount));
                 remainingToDistribute -= amount;
 
                 // If we ran out of amount early (due to clamping), subsequent items might get 0. 

@@ -41,8 +41,8 @@ namespace Game.Features.Trade
             ClearContainer(_exportTransform);
 
             // Add new resources
-            AddResourcesView(data.Import, true);
-            AddResourcesView(data.Export, false);
+            AddResourcesView(data.Import, isExport: false);
+            AddResourcesView(data.Export, isExport: true);
 
             // Setup Click
             _cardButton.onClick.RemoveAllListeners();
@@ -57,14 +57,14 @@ namespace Game.Features.Trade
             }
         }
 
-        private void AddResourcesView(IReadOnlyList<ResourceData> resources, bool isImport)
+        private void AddResourcesView(IReadOnlyList<ResourceAmount> resources, bool isExport)
         {
             if (resources == null) return;
 
             foreach (var resource in resources)
             {
-                var resourceView = Instantiate(_resourceAmountPrefab, isImport ? _importTransform : _exportTransform);
-                resourceView.Initialize(resource, isImport);
+                var resourceView = Instantiate(_resourceAmountPrefab, isExport ? _exportTransform : _importTransform);
+                resourceView.Initialize(resource, isExport);
             }
         }
     }

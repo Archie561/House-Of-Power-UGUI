@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 650b9fa339f07af4498e934717f2ac0f
+    m_Address: Assets/Localization/Tables/LawScreen Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6cd4134f7afc6fe45a22833e2ba119c8
     m_Address: Assets/Localization/Tables/TradesScreen Shared Data.asset
     m_ReadOnly: 1

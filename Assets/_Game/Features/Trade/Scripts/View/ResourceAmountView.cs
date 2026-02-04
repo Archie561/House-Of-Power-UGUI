@@ -22,18 +22,16 @@ namespace Game.Features.Trade
         /// <summary>
         /// Configures the view with data and determines color based on import/export status.
         /// </summary>
-        public void Initialize(ResourceData data, bool isImport)
+        public void Initialize(ResourceAmount res, bool isExpense)
         {
-            if (data == null) return;
-
-            var definition = _library.GetDef(data.Type);
+            var definition = _library.GetDef(res.Type);
             if (definition != null)
             {
                 _image.sprite = definition.Icon;
             }
 
-            _amountText.text = isImport ? $"+{data.Amount}" : $"-{data.Amount}";
-            _amountText.color = isImport ? _incomeColor : _expenseColor;
+            _amountText.text = isExpense ? $"-{res.Amount}" : $"+{res.Amount}";
+            _amountText.color = isExpense ? _expenseColor : _incomeColor;
         }
     }
 }

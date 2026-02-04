@@ -31,34 +31,29 @@ namespace Game.Features.Trade
         [SerializeField] private Sprite _waitingButtonSprite;
 
         private Dictionary<ResourceType, ResourceRowView> _spawnedRows = new Dictionary<ResourceType, ResourceRowView>();
+        private List<TradeOfferView> _offersPool = new List<TradeOfferView>();
 
         #region Unity Lifecycle
 
         private void Start()
         {
             _refreshButton.onClick.AddListener(OnRefreshButtonClicked);
-
-            // Initialize once on startup
-            InitializeResourceRows();
         }
 
         private void OnEnable()
         {
             if (TradeLogicController.Instance == null) return;
 
-            // 1. Subscribe to events
+            // Subscribe to events
             TradeLogicController.Instance.OnTimerTick += UpdateTimer;
             TradeLogicController.Instance.OnRefreshStatusChanged += UpdateHeaderVisuals;
+            TradeLogicController.Instance.OnTradeGoodChanged += RefreshResourceRow;
             TradeLogicController.Instance.OnOffersListUpdated += RebuildOffersList;
-            TradeLogicController.Instance.OnTradeResourceChanged += UpdateSingleResourceVisual;
 
-            // 2. Force Sync (Update UI to match current logic state immediately)
+            // Force Sync (Update UI to match current logic state immediately)
             UpdateHeaderVisuals(TradeLogicController.Instance.IsReadyToRefresh());
-            RebuildOffersList(TradeLogicController.Instance.GetOffers());
-
-            // Ensure resource rows are created if OnEnable fires before Start (rare but possible)
-            if (_spawnedRows.Count == 0) InitializeResourceRows();
-            RefreshAllResourcesVisuals();
+            RebuildOffersList(TradeLogicController.Instance.GetActiveOffers());
+            InitializeResourceRows();
         }
 
         private void OnDisable()
@@ -67,8 +62,8 @@ namespace Game.Features.Trade
 
             TradeLogicController.Instance.OnTimerTick -= UpdateTimer;
             TradeLogicController.Instance.OnRefreshStatusChanged -= UpdateHeaderVisuals;
+            TradeLogicController.Instance.OnTradeGoodChanged -= RefreshResourceRow;
             TradeLogicController.Instance.OnOffersListUpdated -= RebuildOffersList;
-            TradeLogicController.Instance.OnTradeResourceChanged -= UpdateSingleResourceVisual;
         }
 
         #endregion
@@ -77,51 +72,56 @@ namespace Game.Features.Trade
 
         private void InitializeResourceRows()
         {
-            if (_spawnedRows.Count > 0) return;
-
-            // Clean up placeholders if any
-            foreach (Transform child in _resourcesContainer) Destroy(child.gameObject);
-            _spawnedRows.Clear();
-
             var resources = TradeLogicController.Instance.GetPlayerResources();
+
             foreach (var resource in resources)
             {
-                var row = Instantiate(_resourceRowPrefab, _resourcesContainer);
-                row.Initialize(resource, OnUpgradeClicked);
-                _spawnedRows.Add(resource.Type, row);
-            }
-        }
-
-        private void RefreshAllResourcesVisuals()
-        {
-            if (_spawnedRows.Count == 0) return;
-
-            var resources = TradeLogicController.Instance.GetPlayerResources();
-            foreach (var res in resources)
-            {
-                if (_spawnedRows.TryGetValue(res.Type, out var row))
+                if (!_spawnedRows.ContainsKey(resource.Type))
                 {
-                    row.UpdateView(res.Amount, res.MaxCapacity);
+                    var row = Instantiate(_resourceRowPrefab, _resourcesContainer);
+                    row.Initialize(resource.Type, OnUpgradeClicked);
+                    _spawnedRows.Add(resource.Type, row);
                 }
+
+                RefreshResourceRow(resource.Type);
             }
         }
 
-        private void UpdateSingleResourceVisual(ResourceData resource)
+        private void RefreshResourceRow(ResourceType type)
         {
-            if (_spawnedRows.TryGetValue(resource.Type, out var row))
+            if (_spawnedRows.TryGetValue(type, out var row))
             {
-                row.UpdateView(resource.Amount, resource.MaxCapacity);
+                var amount = TradeLogicController.Instance.GetResourceAmount(type);
+                var capacity = TradeLogicController.Instance.GetCurrentResourceCapacity(type);
+                row.UpdateView(amount, capacity);
             }
         }
 
         private void RebuildOffersList(IReadOnlyList<TradeOfferData> offers)
         {
-            foreach (Transform child in _offersContainer) Destroy(child.gameObject);
-
-            foreach (var offer in offers)
+            for (int i = 0; i < offers.Count; i++)
             {
-                var item = Instantiate(_offerPrefab, _offersContainer);
-                item.Initialize(offer, OnOfferClicked);
+                TradeOfferView offerView;
+
+                // Reuse from pool or instantiate new
+                if (i < _offersPool.Count)
+                {
+                    offerView = _offersPool[i];
+                    offerView.gameObject.SetActive(true);
+                }
+                else
+                {
+                    offerView = Instantiate(_offerPrefab, _offersContainer);
+                    _offersPool.Add(offerView);
+                }
+
+                offerView.Initialize(offers[i], OnOfferClicked);
+            }
+
+            // Deactivate any unused offer views in the pool
+            for (int i = offers.Count; i < _offersPool.Count; i++)
+            {
+                _offersPool[i].gameObject.SetActive(false);
             }
         }
 
@@ -148,13 +148,21 @@ namespace Game.Features.Trade
         private void OnUpgradeClicked(ResourceType type)
         {
             // Prepare Data using Logic Controller
-            var upgradeData = TradeLogicController.Instance.GetUpgradeStorageData(type);
-            var canAffordDefault = TradeLogicController.Instance.CanAfford(upgradeData.StorageType, upgradeData.DefaultCostAmount);
-            var canAffordPremium = TradeLogicController.Instance.CanAfford(ResourceType.Gems, upgradeData.PremiumCostAmount);
+            var currentCapacity = TradeLogicController.Instance.GetCurrentResourceCapacity(type);
+            var upgradedCapacity = TradeLogicController.Instance.GetNextResourceCapacity(type);
+            var defaultCost = TradeLogicController.Instance.GetStorageUpgradeCost(type, isPremium: false);
+            var premiumCost = TradeLogicController.Instance.GetStorageUpgradeCost(type, isPremium: true);
+
+            var canAffordDefault = TradeLogicController.Instance.CanAfford(type, defaultCost);
+            var canAffordPremium = TradeLogicController.Instance.CanAfford(ResourceType.Gems, premiumCost);
 
             var popupData = new UpgradeStoragePopupData
             (
-                upgradeData,
+                type,
+                currentCapacity,
+                upgradedCapacity,
+                defaultCost,
+                premiumCost,
                 canAffordDefault,
                 canAffordPremium,
                 onDefaultClick: () =>
@@ -182,12 +190,12 @@ namespace Game.Features.Trade
 
             if (isReady)
             {
-                TradeLogicController.Instance.RefreshOffersFree();
+                TradeLogicController.Instance.TryRefreshOffers(isPremium: false);
                 return;
             }
 
             DateTime targetTime = TradeLogicController.Instance.GetNextRefreshTime();
-            var skipCost = TradeLogicController.Instance.GetGemSkipCost();
+            var skipCost = TradeLogicController.Instance.GetSkipRefreshGemCost();
             var canAfford = TradeLogicController.Instance.CanAfford(ResourceType.Gems, skipCost);
 
             var popupData = new RefreshTradesPopupData
@@ -197,7 +205,7 @@ namespace Game.Features.Trade
                 canAfford,
                 onSkipClick: () =>
                 {
-                    TradeLogicController.Instance.TryRefreshWithGems();
+                    TradeLogicController.Instance.TryRefreshOffers(isPremium: true);
                     PopupController.Instance.CloseCurrentPopup();
                 },
                 onTimerVisuallyFinished: () =>
@@ -218,7 +226,10 @@ namespace Game.Features.Trade
 
         private void OnOfferClicked(TradeOfferData offer)
         {
-            var canAfford = TradeLogicController.Instance.CanAfford(offer.Export);
+            var canAfford = TradeLogicController.Instance.CanAfford(offer);
+
+            // Can be used to display warning popup later
+            // var isEnaughCapacity = TradeLogicController.Instance.IsEnaughCapacity(offer);
 
             var popupData = new AcceptOfferPopupData
             (

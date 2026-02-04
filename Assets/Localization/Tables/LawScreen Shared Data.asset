@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: LawScreen Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: LawScreen
+  m_TableCollectionNameGuidString: 650b9fa339f07af4498e934717f2ac0f
+  m_Entries:
+  - m_Id: 26115268608
+    m_Key: LawScreen.AuthorAgriculture
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361399541760
+    m_Key: LawScreen.AuthorArmy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 383881011200
+    m_Key: LawScreen.AuthorCourt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 414419738624
+    m_Key: LawScreen.AuthorDiplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 472028504064
+    m_Key: LawScreen.AuthorEcology
+    m_Metadata:
+      m_Items: []
+  - m_Id: 516353908736
+    m_Key: LawScreen.AuthorEconomy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 548788461568
+    m_Key: LawScreen.AuthorEducation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 586008715264
+    m_Key: LawScreen.AuthorGlobalProjects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 619470872576
+    m_Key: LawScreen.AuthorHealthcare
+    m_Metadata:
+      m_Items: []
+  - m_Id: 648587730944
+    m_Key: LawScreen.AuthorInfrastructure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 697438789632
+    m_Key: LawScreen.AuthorScience
+    m_Metadata:
+      m_Items: []
+  - m_Id: 718833934336
+    m_Key: LawScreen.AuthorWelfare
+    m_Metadata:
+      m_Items: []
+  - m_Id: 68224978214912
+    m_Key: LawScreen.DocumentHeader
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 3450993514738614346
+  references:
+    version: 2
+    RefIds:
+    - rid: 3450993514738614346
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1768563145148

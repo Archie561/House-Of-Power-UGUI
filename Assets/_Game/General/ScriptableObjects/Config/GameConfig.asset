@@ -12,37 +12,100 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d96d8b711ed64cc449be9421467a89d3, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::Game.General.GameConfig
-  InitialResources:
+  _initialResources:
   - Type: 0
-    StartAmount: 100
-    StartCapacity: 2147483647
+    Amount: 1000
   - Type: 1
-    StartAmount: 20
-    StartCapacity: 2147483647
-  - Type: 2
-    StartAmount: 1000
-    StartCapacity: 2147483647
+    Amount: 50
   - Type: 10
-    StartAmount: 50
-    StartCapacity: 100
-  - Type: 0
-    StartAmount: 0
-    StartCapacity: 0
+    Amount: 50
   - Type: 11
-    StartAmount: 50
-    StartCapacity: 100
+    Amount: 50
   - Type: 12
-    StartAmount: 50
-    StartCapacity: 100
+    Amount: 50
   - Type: 13
-    StartAmount: 50
-    StartCapacity: 100
+    Amount: 50
   - Type: 14
-    StartAmount: 50
-    StartCapacity: 100
+    Amount: 50
   - Type: 15
-    StartAmount: 50
-    StartCapacity: 100
-  InitialUnlockedStateIds: []
-  TradeRefreshCooldown: 600
-  TradeBaseGemSkipCost: 5
+    Amount: 50
+  - Type: 20
+    Amount: 0
+  - Type: 21
+    Amount: 0
+  - Type: 22
+    Amount: 0
+  - Type: 23
+    Amount: 0
+  - Type: 24
+    Amount: 0
+  - Type: 25
+    Amount: 0
+  _initialStorageLevels:
+  - Type: 10
+    Amount: 1
+  - Type: 11
+    Amount: 1
+  - Type: 12
+    Amount: 1
+  - Type: 13
+    Amount: 1
+  - Type: 14
+    Amount: 1
+  - Type: 15
+    Amount: 1
+  _initialOffers:
+  - Country: 0
+    Import:
+    - Type: 15
+      Amount: 30
+    - Type: 10
+      Amount: 15
+    Export:
+    - Type: 12
+      Amount: 10
+    - Type: 13
+      Amount: 10
+    - Type: 14
+      Amount: 20
+  - Country: 2
+    Import:
+    - Type: 10
+      Amount: 25
+    - Type: 11
+      Amount: 10
+    - Type: 12
+      Amount: 15
+    Export:
+    - Type: 13
+      Amount: 15
+    - Type: 14
+      Amount: 15
+    - Type: 15
+      Amount: 15
+  - Country: 3
+    Import:
+    - Type: 15
+      Amount: 10
+    - Type: 10
+      Amount: 10
+    - Type: 14
+      Amount: 10
+    Export:
+    - Type: 12
+      Amount: 15
+    - Type: 13
+      Amount: 20
+  - Country: 4
+    Import:
+    - Type: 14
+      Amount: 20
+    - Type: 12
+      Amount: 25
+    Export:
+    - Type: 15
+      Amount: 15
+    - Type: 11
+      Amount: 15
+  _initialRefreshTime: 300
+  _isFirstGameSession: 1

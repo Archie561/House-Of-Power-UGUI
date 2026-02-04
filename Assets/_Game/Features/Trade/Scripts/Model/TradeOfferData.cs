@@ -10,14 +10,14 @@ namespace Game.Features.Trade
     public class TradeOfferData
     {
         public CountryId CountryId { get; }
-        public IReadOnlyList<ResourceData> Import { get; }
-        public IReadOnlyList<ResourceData> Export { get; }
+        public IReadOnlyList<ResourceAmount> Import { get; }
+        public IReadOnlyList<ResourceAmount> Export { get; }
 
-        public TradeOfferData(CountryId countryId, List<ResourceData> import, List<ResourceData> export)
+        public TradeOfferData(CountryId countryId, List<ResourceAmount> import, List<ResourceAmount> export)
         {
             CountryId = countryId;
-            Import = import;
-            Export = export;
+            Import = import.AsReadOnly();
+            Export = export.AsReadOnly();
         }
     }
 }

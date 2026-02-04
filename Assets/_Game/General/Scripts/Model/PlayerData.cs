@@ -11,9 +11,8 @@ namespace Game.General
     [Serializable]
     public class PlayerData
     {
-        public List<ResourceData> Resources;
-        public List<string> UnlockedStateIds;
-        public List<string> PurchasedCityIds;
+        public Dictionary<ResourceType, int> Resources;
+        public Dictionary<ResourceType, int> StorageLevels;
         public bool IsFirstSession;
 
         public DateTime NextTradeRefreshTime;
@@ -24,17 +23,14 @@ namespace Game.General
         /// Automatically initializes lists to empty if null is passed.
         /// </summary>
         public PlayerData(
-            List<ResourceData> resources,
-            List<string> unlockedStateIds,
-            List<string> purchasedCityIds,
+            Dictionary<ResourceType, int> resources,
+            Dictionary<ResourceType, int> storageLevels,
             bool isFirstSession,
             DateTime nextTradeRefreshTime,
             List<TradeOfferData> activeTradeOffers)
         {
-            // Ensure lists are never null to prevent NullReferenceException logic errors later
-            Resources = resources ?? new List<ResourceData>();
-            UnlockedStateIds = unlockedStateIds;
-            PurchasedCityIds = purchasedCityIds;
+            Resources = resources;
+            StorageLevels = storageLevels;
 
             IsFirstSession = isFirstSession;
             NextTradeRefreshTime = nextTradeRefreshTime;

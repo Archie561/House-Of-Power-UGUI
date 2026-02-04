@@ -4,7 +4,7 @@ using UnityEngine.Localization;
 namespace Game.General
 {
     /// <summary>
-    /// Configuration asset representing a specific resource (Wood, Gold, etc.).
+    /// Configuration asset representing a specific resource (Wood, Gold, Healthcare, etc.).
     /// </summary>
     [CreateAssetMenu(fileName = "Res_New", menuName = "Game/Resources/Definition")]
     public class ResourceDefinition : ScriptableObject

@@ -25,16 +25,8 @@ namespace Game.Features.Popup
         /// </summary>
         public void Initialize(UpgradeStoragePopupData popupData)
         {
-            if (popupData?.UpgradeData == null)
-            {
-                Debug.LogError("[UpgradeStoragePopup] Data is missing!");
-                return;
-            }
-
-            var data = popupData.UpgradeData;
-
             // Localization
-            var definition = _resourceLibrary.GetDef(data.StorageType);
+            var definition = _resourceLibrary.GetDef(popupData.StorageType);
             if (definition != null)
             {
                 _descriptionLocalizer.StringReference.Arguments = new object[] { definition.LocalizedName.GetLocalizedString() };
@@ -42,20 +34,20 @@ namespace Game.Features.Popup
             }
 
             // Capacity Texts
-            _currentStorageCapacity.text = data.CurrentCapacity.ToString();
-            _upgradedStorageCapacity.text = data.NextCapacity.ToString();
+            _currentStorageCapacity.text = popupData.CurrentCapacity.ToString();
+            _upgradedStorageCapacity.text = popupData.UpgradedCapacity.ToString();
 
             // Initialize Buttons
             _resourceCostButton.Initialize(
-                data.StorageType,
-                data.DefaultCostAmount,
+                popupData.StorageType,
+                popupData.DefaultCost,
                 popupData.CanAffordDefault,
                 popupData.OnDefaultClick
             );
 
             _gemCostButton.Initialize(
                 ResourceType.Gems,
-                data.PremiumCostAmount,
+                popupData.PremiumCost,
                 popupData.CanAffordPremium,
                 popupData.OnPremiumClick
             );

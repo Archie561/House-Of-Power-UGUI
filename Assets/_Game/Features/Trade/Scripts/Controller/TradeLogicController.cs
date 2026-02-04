@@ -9,30 +9,28 @@ namespace Game.Features.Trade
     /// Orchestrates the trading system mechanics: timer, offer lifecycle, and upgrades.
     /// Acts as a bridge between DataService and View.
     /// </summary>
-    public class TradeLogicController : MonoBehaviour
+    public class TradeLogicController : MonoBehaviour, IResourceLogicHandler
     {
         public static TradeLogicController Instance { get; private set; }
 
         [Header("Config")]
-        [SerializeField] private float _refreshTradesCooldown = 600f;
-        [SerializeField] private int _skipRefreshGemCost = 5;
-        [SerializeField] private int _offersToGenerate = 8;
+        [SerializeField] private TradeConfig _config;
 
+        // --- State ---
+        private List<TradeOfferData> _activeOffersCache = new List<TradeOfferData>();
+        private float _timerSecondsRemaining;
+        private bool _isReadyToRefresh;
+        private int _lastIntTimer = -1; // For UI events optimization
+
+        // --- Dependencies ---
+        private TradeOfferGenerator _offerGenerator;
+        private StorageUpgradeCalculator _storageUpgradeCalculator;
+
+        // --- Events ---
         public event Action<float> OnTimerTick;
         public event Action<bool> OnRefreshStatusChanged;
         public event Action<IReadOnlyList<TradeOfferData>> OnOffersListUpdated;
-        public event Action<ResourceData> OnTradeResourceChanged;
-
-        private float _currentTimerSeconds; // Visual timer only;
-        private int _lastIntTimer = -1;
-        private bool _isReadyToRefresh;
-        private bool _isDataLoaded = false;
-
-        private List<TradeOfferData> _activeOffers = new List<TradeOfferData>();
-
-        // Dependencies
-        private TradeOfferGenerator _offerGenerator;
-        private StorageUpgradeCalculator _upgradeCalculator;
+        public event Action<ResourceType> OnTradeGoodChanged;
 
         #region Unity Lifecycle
 
@@ -46,244 +44,333 @@ namespace Game.Features.Trade
             Instance = this;
 
             // Initialize Logic Modules
-            _offerGenerator = new TradeOfferGenerator();
-            _upgradeCalculator = new StorageUpgradeCalculator();
+            _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetCurrentResourceCapacity);
+            _storageUpgradeCalculator = new StorageUpgradeCalculator(settings: _config.StorageSettings);
+
+            // Register as trade goods Logic Handler
+            RegisterHandler();
         }
 
         private void Start()
         {
-            if (GameDataService.Instance != null)
-                GameDataService.Instance.OnResourceChanged += HandleGlobalResourceChange;
+            GameDataService.Instance.OnResourceChanged += HandleResourceChange;
 
-            RestoreTimerState();
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this && GameDataService.Instance != null)
-                GameDataService.Instance.OnResourceChanged -= HandleGlobalResourceChange;
+            LoadActiveOffers();
+            InitializeTimer();
         }
 
         private void Update()
         {
             if (_isReadyToRefresh) return;
 
-            _currentTimerSeconds -= Time.deltaTime;
+            HandleTimerTick();
+        }
 
-            if (_currentTimerSeconds <= 0)
-            {
-                _currentTimerSeconds = 0;
-                if (DateTime.Now >= GameDataService.Instance.GetNextTradeRefreshTime())
-                {
-                    SetReadyState(true);
-                }
-            }
-
-            // Optimize Event Calls: Only fire when integer second changes
-            int currentIntTimer = Mathf.CeilToInt(_currentTimerSeconds);
-            if (currentIntTimer != _lastIntTimer)
-            {
-                _lastIntTimer = currentIntTimer;
-                OnTimerTick?.Invoke(_currentTimerSeconds);
-            }
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            GameDataService.Instance.OnResourceChanged -= HandleResourceChange;
         }
 
         #endregion
 
-        #region Public API - Offers
+        #region Offers Logic
 
-        public IReadOnlyList<TradeOfferData> GetOffers()
+        /// <summary>
+        /// Retrieves a read-only list of all currently active trade offers.
+        /// </summary>
+        public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
-            if (!_isDataLoaded)
+            if (_activeOffersCache == null)
             {
-                RestoreOffersState();
+                LoadActiveOffers();
             }
-            return _activeOffers.AsReadOnly();
+            return _activeOffersCache.AsReadOnly();
         }
+
+        /// <summary>
+        /// Updates offers list with new generated offers if the timer allows it or if paid with gems.
+        /// </summary>
+        /// <param name="isPremium">Indicates if the refresh is paid with gems (true) or free (false).</param>
+        public bool TryRefreshOffers(bool isPremium)
+        {
+            if (!isPremium)
+            {
+                if (!_isReadyToRefresh) return false;
+            }
+            else
+            {
+                var cost = TransactionOperation.Spend(ResourceType.Gems, _config.SkipRefreshGemCost);
+                if (!GameDataService.Instance.TryApplyTransaction(cost)) return false;
+            }
+
+            GenerateOffers();
+            ResetTimer();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Attempts to execute the given trade offer. If successful, updates resources and removes the offer.
+        /// </summary>
+        public bool TryExecuteOffer(TradeOfferData offer)
+        {
+            if (offer == null || !_activeOffersCache.Contains(offer))
+                return false;
+
+            List<TransactionOperation> transaction = new List<TransactionOperation>();
+
+            foreach (var resource in offer.Export)
+                transaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
+
+            // Add operations are enforced. An overflow warning (if any) is displayed in the UI before the transaction is confirmed.
+            foreach (var resource in offer.Import)
+                transaction.Add(TransactionOperation.Add(resource.Type, resource.Amount, forceApply: true));
+
+            if (!GameDataService.Instance.TryApplyTransaction(transaction))
+                return false;
+
+            _activeOffersCache.Remove(offer);
+            GameDataService.Instance.SaveActiveOffers(_activeOffersCache.AsReadOnly());
+            OnOffersListUpdated?.Invoke(_activeOffersCache.AsReadOnly());
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks if the player has enough resource to pay the cost.
+        /// </summary>
+        public bool CanAfford(ResourceType type, int cost)
+        {
+            return GameDataService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
+        }
+
+        /// <summary>
+        /// Checks if the player has enaugh export resources of the given trade offer.
+        /// </summary>
+        public bool CanAfford(TradeOfferData offer)
+        {
+            List<TransactionOperation> transaction = new List<TransactionOperation>();
+
+            foreach (var resource in offer.Export)
+                transaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
+
+            if (!GameDataService.Instance.CanApplyTransaction(transaction))
+                return false;
+
+            return true;
+        }
+
+        // Loads saved offers from GameDataService. If none exist, creates an empty list.
+        private void LoadActiveOffers()
+        {
+            var savedOffers = GameDataService.Instance.GetActiveOffers();
+            _activeOffersCache = savedOffers != null ? new List<TradeOfferData>(savedOffers) : new List<TradeOfferData>();
+        }
+
+        // Generates new trade offers and updates the GameDataService. Notifies listeners.
+        private void GenerateOffers()
+        {
+            _activeOffersCache.Clear();
+            for (int i = 0; i < _config.OffersToGenerate; i++)
+            {
+                _activeOffersCache.Add(_offerGenerator.GenerateOffer());
+            }
+
+            GameDataService.Instance.SaveActiveOffers(_activeOffersCache.AsReadOnly());
+            OnOffersListUpdated?.Invoke(_activeOffersCache.AsReadOnly());
+        }
+
+        #endregion
+
+        #region Timer Logic
 
         public bool IsReadyToRefresh() => _isReadyToRefresh;
 
         public DateTime GetNextRefreshTime() => GameDataService.Instance.GetNextTradeRefreshTime();
 
-        // TODO: In the future, this could scale with the timer
-        public int GetGemSkipCost() => _skipRefreshGemCost;
+        public int GetSkipRefreshGemCost() => _config.SkipRefreshGemCost;
 
-        public void RefreshOffersFree()
-        {
-            if (!_isReadyToRefresh) return;
-            GenerateOffers(notify: true);
-            ResetTimer();
-        }
-
-        public bool TryRefreshWithGems()
-        {
-            int cost = GetGemSkipCost();
-
-            if (!GameDataService.Instance.TrySpend(ResourceType.Gems, cost))
-                return false;
-
-            GenerateOffers(notify: true);
-            ResetTimer();
-            return true;
-        }
-
-        public bool TryExecuteOffer(TradeOfferData offer)
-        {
-            if (offer == null) return false;
-
-            // Check if we have resources to export
-            if (!GameDataService.Instance.CanAfford(offer.Export)) return false;
-
-            // Transaction: Spend Export, Gain Import
-            GameDataService.Instance.TrySpend(offer.Export);
-            GameDataService.Instance.AddResources(offer.Import);
-
-            _activeOffers.Remove(offer);
-            GameDataService.Instance.SaveActiveOffers(_activeOffers);
-            OnOffersListUpdated?.Invoke(_activeOffers.AsReadOnly());
-
-            return true;
-        }
-
-        #endregion
-
-        #region Public API - Resources & Upgrades
-
-        public IReadOnlyList<ResourceData> GetPlayerResources()
-        {
-            var resources = new List<ResourceData>();
-            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
-            {
-                if (type.IsCurrency()) continue;
-
-                resources.Add(new ResourceData(
-                    type,
-                    GameDataService.Instance.GetAmount(type),
-                    GameDataService.Instance.GetMaxCapacity(type)
-                ));
-            }
-            return resources.AsReadOnly();
-        }
-
-        public UpgradeStorageData GetUpgradeStorageData(ResourceType type)
-        {
-            int currentCap = GameDataService.Instance.GetMaxCapacity(type);
-            return _upgradeCalculator.CalculateNextUpgrade(type, currentCap);
-        }
-
-        public bool TryUpgradeCapacity(ResourceType type, bool premiumPurchase)
-        {
-            var data = GetUpgradeStorageData(type);
-
-            // Determine cost type and amount
-            ResourceType costType = premiumPurchase ? ResourceType.Gems : type;
-            int amount = premiumPurchase ? data.PremiumCostAmount : data.DefaultCostAmount;
-
-            if (!GameDataService.Instance.TrySpend(costType, amount))
-            {
-                return false;
-            }
-
-            GameDataService.Instance.UpgradeCapacity(type, _upgradeCalculator.GetCapacityStep());
-            return true;
-        }
-
-        // Forwarding simple checks to DataService to keep encapsulation
-        public bool CanAfford(ResourceType type, int cost) => GameDataService.Instance.CanAfford(type, cost);
-
-        public bool CanAfford(IReadOnlyList<ResourceData> costs) => GameDataService.Instance.CanAfford(costs);
-
-        #endregion
-
-        #region Private Methods
-
-        private void RestoreTimerState()
+        // Loads the timer state based on saved next refresh time.
+        private void InitializeTimer()
         {
             DateTime targetTime = GameDataService.Instance.GetNextTradeRefreshTime();
             TimeSpan diff = targetTime - DateTime.Now;
 
             if (diff.TotalSeconds <= 0)
             {
-                // Time has already passed (e.g. while game was closed)
-                SetReadyState(true);
+                _timerSecondsRemaining = 0;
+                SetTimerState(isReady: true);
             }
             else
             {
-                // Timer is still running
-                _currentTimerSeconds = (float)diff.TotalSeconds;
-                SetReadyState(false);
+                _timerSecondsRemaining = (float)diff.TotalSeconds;
+                SetTimerState(isReady: false);
             }
         }
 
-        private void SetReadyState(bool isReady)
+        // Handles the countdown timer logic and triggers events on tick.
+        private void HandleTimerTick()
+        {
+            _timerSecondsRemaining -= Time.deltaTime;
+
+            if (_timerSecondsRemaining <= 0)
+            {
+                _timerSecondsRemaining = 0;
+                if (DateTime.Now >= GameDataService.Instance.GetNextTradeRefreshTime())
+                {
+                    SetTimerState(true);
+                }
+            }
+
+            // Optimize Event Calls: Only fire when integer second changes
+            int currentIntTimer = Mathf.CeilToInt(_timerSecondsRemaining);
+            if (currentIntTimer != _lastIntTimer)
+            {
+                _lastIntTimer = currentIntTimer;
+                OnTimerTick?.Invoke(_timerSecondsRemaining);
+            }
+        }
+
+        // Resets the timer to the configured cooldown and updates the next refresh time in GameDataService.
+        private void ResetTimer()
+        {
+            DateTime newTarget = DateTime.Now.AddSeconds(_config.RefreshTradesCooldown);
+            GameDataService.Instance.SetNextTradeRefreshTime(newTarget);
+
+            _timerSecondsRemaining = _config.RefreshTradesCooldown;
+            SetTimerState(false);
+        }
+
+        // Updates the timer state and triggers the refresh status changed event.
+        private void SetTimerState(bool isReady)
         {
             _isReadyToRefresh = isReady;
             OnRefreshStatusChanged?.Invoke(isReady);
-            if (isReady) _currentTimerSeconds = 0;
-            OnTimerTick?.Invoke(_currentTimerSeconds);
         }
 
-        private void ResetTimer()
+        #endregion
+
+        #region Resources Logic
+
+        /// <summary>
+        /// Returns the player's trade goods resources for UI display.
+        /// </summary>
+        public IReadOnlyList<ResourceAmount> GetPlayerResources()
         {
-            DateTime newTarget = DateTime.Now.AddSeconds(_refreshTradesCooldown);
-            GameDataService.Instance.SetNextTradeRefreshTime(newTarget);
-
-            _currentTimerSeconds = _refreshTradesCooldown;
-            SetReadyState(false);
-        }
-
-        private void RestoreOffersState()
-        {
-            _isDataLoaded = true;
-
-            // Try to load from GameDataService
-            var savedOffers = GameDataService.Instance.GetActiveOffers();
-
-            if (savedOffers != null && savedOffers.Count > 0)
+            var resources = new List<ResourceAmount>();
+            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
-                // Found saved offers, use them
-                _activeOffers = new List<TradeOfferData>(savedOffers);
+                if (type.IsTradeGood())
+                {
+                    resources.Add(new ResourceAmount(type, GameDataService.Instance.GetAmount(type)));
+                }   
             }
+
+            return resources.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Gets the current amount of the specified resource type.
+        /// </summary>
+        public int GetResourceAmount(ResourceType type)
+        {
+            return GameDataService.Instance.GetAmount(type);
+        }
+
+        /// <summary>
+        /// Returns CURRENT storage capacity for the specified resource type.
+        /// </summary>
+        public int GetCurrentResourceCapacity(ResourceType type)
+        {
+            int level = GameDataService.Instance.GetStorageLevel(type);
+            return _storageUpgradeCalculator.GetCapacity(level);
+        }
+
+        /// <summary>
+        /// Calculates the storage capacity for the next upgrade level of the specified resource type.
+        /// </summary>
+        public int GetNextResourceCapacity(ResourceType type)
+        {
+            int currentLevel = GameDataService.Instance.GetStorageLevel(type);
+            int nextLevel = currentLevel + 1;
+            return _storageUpgradeCalculator.GetCapacity(nextLevel);
+        }
+
+        /// <summary>
+        /// Calculates the cost to upgrade specific resource storage to the NEXT level.
+        /// </summary>
+        public int GetStorageUpgradeCost(ResourceType type, bool isPremium)
+        {
+            int currentLevel = GameDataService.Instance.GetStorageLevel(type);
+            int nextLevel = currentLevel + 1;
+
+            if (isPremium)
+                return _storageUpgradeCalculator.GetPremiumCost(nextLevel);
             else
-            {
-                //If first time or no saved offers, generate new ones
-                if (GameDataService.Instance.GetActiveOffers() == null)
-                {
-                    GenerateOffers(notify: false);
-                }
-                else
-                {
-                    _activeOffers.Clear();
-                }
-            }
-
-            OnOffersListUpdated?.Invoke(_activeOffers.AsReadOnly());
+                return _storageUpgradeCalculator.GetDefaultCost(nextLevel);
         }
 
-        private void GenerateOffers(bool notify)
+        /// <summary>
+        /// Attempts to upgrade storage.
+        /// </summary>
+        public bool TryUpgradeCapacity(ResourceType type, bool premiumPurchase)
         {
-            _activeOffers.Clear();
-            for (int i = 0; i < _offersToGenerate; i++)
-            {
-                _activeOffers.Add(_offerGenerator.GenerateOffer());
-            }
-            GameDataService.Instance.SaveActiveOffers(_activeOffers);
+            int cost = GetStorageUpgradeCost(type, premiumPurchase);
+            ResourceType costType = premiumPurchase ? ResourceType.Gems : type;
 
-            if (notify)
+            if (!GameDataService.Instance.TryApplyTransaction(TransactionOperation.Spend(costType, cost)))
+                return false;
+
+            int newLevel = GameDataService.Instance.GetStorageLevel(type) + 1;
+            GameDataService.Instance.SetStorageLevel(type, newLevel);
+
+            OnTradeGoodChanged?.Invoke(type);
+            return true;
+        }
+
+        private void HandleResourceChange(ResourceChangeData data)
+        {
+            if (data.Type.IsTradeGood())
             {
-                OnOffersListUpdated?.Invoke(_activeOffers.AsReadOnly());
+                OnTradeGoodChanged?.Invoke(data.Type);
             }
         }
 
-        private void HandleGlobalResourceChange(ResourceType type)
+        #endregion
+
+        #region IResourceLogicHandler Implementation
+
+        private void RegisterHandler()
         {
-            if (type.IsCurrency()) return;
+            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+            {
+                if (type.IsTradeGood())
+                {
+                    GameDataService.Instance.RegisterHandler(type, this);
+                }
+            }
+        }
 
-            // Notify UI only about the changed resource to update the row
-            int amount = GameDataService.Instance.GetAmount(type);
-            int maxCapacity = GameDataService.Instance.GetMaxCapacity(type);
+        public bool CanApplyTransactionOperation(ResourceType type, int currentAmount, int delta)
+        {
+            int newAmount = currentAmount + delta;
 
-            OnTradeResourceChanged?.Invoke(new ResourceData(type, amount, maxCapacity));
+            if (newAmount < 0) return false;
+
+            if (delta > 0)
+            {
+                int capacity = GetCurrentResourceCapacity(type);
+                if (newAmount > capacity) return false;
+            }
+
+            return true;
+        }
+
+        public int CalculateTransactionOperation(ResourceType type, int currentAmount, int delta)
+        {
+            int capacity = GetCurrentResourceCapacity(type);
+            return Mathf.Clamp(currentAmount + delta, 0, capacity);
         }
 
         #endregion

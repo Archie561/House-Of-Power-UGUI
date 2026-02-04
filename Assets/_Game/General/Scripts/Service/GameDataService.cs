@@ -9,9 +9,10 @@ namespace Game.General
 {
     /// <summary>
     /// The central service responsible for persistent data management (Save/Load) 
-    /// and core economy logic (Transactions, Resource adjustments).
+    /// and core economy logic (Transactions, stats adjustments).
     /// Acts as a Single Source of Truth for the game state.
     /// </summary>
+    [DefaultExecutionOrder(-100)] // Ensure this initializes early
     public class GameDataService : MonoBehaviour
     {
         public static GameDataService Instance { get; private set; }
@@ -25,15 +26,16 @@ namespace Game.General
 
         private PlayerData _playerData;
         private string _saveFilePath;
+        private bool _isDirty;
 
-        // Lookup cache for O(1) resource access
-        private Dictionary<ResourceType, ResourceData> _resourceLookup;
+        // Handlers that determine the logic of operations on resource values
+        private Dictionary<ResourceType, IResourceLogicHandler> _logicHandlers;
 
         #endregion
 
         #region Events
 
-        public event Action<ResourceType> OnResourceChanged;
+        public event Action<ResourceChangeData> OnResourceChanged;
 
         #endregion
 
@@ -55,10 +57,19 @@ namespace Game.General
             LoadPlayerData();
         }
 
+        private void LateUpdate()
+        {
+            if (_isDirty)
+            {
+                SavePlayerData();
+                _isDirty = false;
+            }
+        }
+
         // Critical for mobile: Save when user minimizes the app
         private void OnApplicationPause(bool pauseStatus)
         {
-            if (pauseStatus)
+            if (pauseStatus && _isDirty)
             {
                 SavePlayerData();
             }
@@ -66,7 +77,10 @@ namespace Game.General
 
         private void OnApplicationQuit()
         {
-            SavePlayerData();
+            if (_isDirty)
+            {
+                SavePlayerData();
+            }
         }
 
         #endregion
@@ -78,8 +92,7 @@ namespace Game.General
             if (!File.Exists(_saveFilePath))
             {
                 _playerData = GenerateNewPlayerData();
-                InitializeLookup(); // Build cache
-                SavePlayerData();
+                _isDirty = true;
             }
             else
             {
@@ -90,23 +103,18 @@ namespace Game.General
 
                     // Validate data integrity (in case save file is old version)
                     if (_playerData == null) throw new Exception("Deserialized data is null");
-
-                    InitializeLookup(); // Build cache
                 }
                 catch (Exception e)
                 {
                     Debug.LogError($"[GameDataService] Failed to load data: {e.Message}. Creating new.");
                     _playerData = GenerateNewPlayerData();
-                    InitializeLookup();
-                    SavePlayerData(); // Overwrite corrupted file
+                    _isDirty = true;
                 }
             }
         }
 
-        public void SavePlayerData()
+        private void SavePlayerData()
         {
-            if (_playerData == null) return;
-
             try
             {
                 string json = JsonConvert.SerializeObject(_playerData, Formatting.Indented);
@@ -122,199 +130,273 @@ namespace Game.General
         private PlayerData GenerateNewPlayerData()
         {
             // Initial Game State Configuration
-            List<ResourceData> resources = new List<ResourceData>();
+            Dictionary<ResourceType, int> resources = _gameConfig.GetInitialResources();
+            Dictionary<ResourceType, int> storageLevels = _gameConfig.GetInitialStorageLevels();
+            List<TradeOfferData> activeTradeOffers = _gameConfig.GetInitialOffers();
 
-            if (_gameConfig.InitialResources != null)
-            {
-                foreach (var initData in _gameConfig.InitialResources)
-                {
-                    resources.Add(new ResourceData(initData.Type, initData.StartAmount, initData.StartCapacity));
-                }
-            }
+            DateTime nextRefresh = DateTime.Now.AddSeconds(_gameConfig.GetInitialRefreshTime());
+            bool isFirstSession = _gameConfig.IsFirstGameSession();
 
             // Ensure all enums exist (safety check)
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
-                if (!resources.Exists(r => r.Type == type))
+                if (!resources.ContainsKey(type))
                 {
-                    int cap = type.IsCurrency() ? int.MaxValue : 100;
-                    resources.Add(new ResourceData(type, 0, cap));
+                    resources.Add(type, 0); // Default amount
+                }
+
+                if (type.IsTradeGood() && !storageLevels.ContainsKey(type))
+                {
+                    storageLevels.Add(type, 1); // Default level
                 }
             }
-
-            List<string> unlockedStates = new List<string>();
-            List<string> purchasedCities = new List<string>();
-
-            DateTime nextRefresh = DateTime.Now;
 
             return new PlayerData(
                 resources,
-                unlockedStates,
-                purchasedCities,
-                isFirstSession: true,
+                storageLevels,
+                isFirstSession,
                 nextRefresh,
-                activeTradeOffers: null
+                activeTradeOffers
             );
-        }
-
-        private void InitializeLookup()
-        {
-            _resourceLookup = new Dictionary<ResourceType, ResourceData>();
-            if (_playerData?.Resources == null) return;
-
-            foreach (var res in _playerData.Resources)
-            {
-                if (!_resourceLookup.ContainsKey(res.Type))
-                {
-                    _resourceLookup.Add(res.Type, res);
-                }
-            }
         }
 
         #endregion
 
         #region Economy Public API
 
+        /// <summary>
+        /// Registers handler that defines custom logic for resource modifications.
+        /// </summary>
+        public void RegisterHandler(ResourceType type, IResourceLogicHandler handler)
+        {
+            if (_logicHandlers == null)
+            {
+                _logicHandlers = new Dictionary<ResourceType, IResourceLogicHandler>();
+            }
+
+            // There is no duplicate check here, because when the scene is reloaded, the controllers will be re-registered.
+            _logicHandlers[type] = handler;
+        }
+
+        /// <summary>
+        /// Determines whether the specified transaction operation can be successfully applied after checking conditions by handlers, if any.
+        /// If operation.ForceApply equals true, skips validation for that operation.
+        /// </summary>
+        /// <param name="operations">The transaction operations to apply. Determines the type of resource affected, the amount to change, and
+        /// whether to force the application of the transaction.</param>
+        /// <returns>true if the transaction can be applied; otherwise, false.</returns>
+        public bool CanApplyTransaction(IReadOnlyList<TransactionOperation> operations)
+        {
+            var simulationCache = new Dictionary<ResourceType, int>();
+
+            foreach (var op in operations)
+            {
+                if (!simulationCache.ContainsKey(op.Type))
+                    simulationCache[op.Type] = GetAmount(op.Type);
+
+                int currentSimulated = simulationCache[op.Type];
+
+                if (!op.ForceApply)
+                {
+                    if (!CanApplyTransactionOperation(op.Type, currentSimulated, op.Amount))
+                        return false;
+                }
+
+                simulationCache[op.Type] = CalculateTransactionOperation(op.Type, currentSimulated, op.Amount);
+            }
+
+            return true;
+        }
+
+        // Method overloading for single parameter
+        public bool CanApplyTransaction(TransactionOperation operation)
+        {
+            if (operation.ForceApply) return true;
+
+            return CanApplyTransactionOperation(operation.Type, GetAmount(operation.Type), operation.Amount);
+        }
+
+        /// <summary>
+        /// Attempts to complete the transaction after checking conditions by handlers.
+        /// </summary>
+        /// <param name="operations">The transaction operations to apply. Determines the type of resource affected, the amount to change, and
+        /// whether to force the application of the transaction.</param>
+        /// <returns>true if the transaction was successfully applied; otherwise, false.</returns>
+        public bool TryApplyTransaction(IReadOnlyList<TransactionOperation> operations)
+        {
+            if (!CanApplyTransaction(operations))
+                return false;
+
+            foreach (var op in operations)
+            {
+                int currentAmount = GetAmount(op.Type);
+                int newAmount = CalculateTransactionOperation(op.Type, currentAmount, op.Amount);
+                ApplyResourceChange(op.Type, currentAmount, newAmount);
+            }
+
+            return true;
+        }
+
+        // Method overloading for single parameter
+        public bool TryApplyTransaction(TransactionOperation operation)
+        {
+            if (!CanApplyTransaction(operation)) return false;
+
+            int currentAmount = GetAmount(operation.Type);
+            int newAmount = CalculateTransactionOperation(operation.Type, currentAmount, operation.Amount);
+            ApplyResourceChange(operation.Type, currentAmount, newAmount);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns the current amount of the specified resource type.
+        /// </summary>
         public int GetAmount(ResourceType type)
         {
-            return TryGetResourceData(type, out var data) ? data.Amount : 0;
-        }
-
-        public int GetMaxCapacity(ResourceType type)
-        {
-            return TryGetResourceData(type, out var data) ? data.MaxCapacity : 0;
-        }
-
-        public bool CanAfford(ResourceType type, int amount)
-        {
-            if (TryGetResourceData(type, out var data))
+            try
             {
-                return data.Amount >= amount;
+                int amount = _playerData.Resources[type];
+                return amount;
             }
-            return false;
-        }
-
-        public bool CanAfford(IReadOnlyList<ResourceData> cost)
-        {
-            if (cost == null || cost.Count == 0) return true;
-
-            foreach (var item in cost)
+            catch (Exception ex)
             {
-                if (!CanAfford(item.Type, item.Amount)) return false;
+                throw new Exception($"[GameDataService] Failed to get amount for resource type {type}: {ex.Message}");
             }
-            return true;
         }
 
         /// <summary>
-        /// Attempts to spend a single resource. Returns true if successful.
+        /// Returns the storage capacity level for the specified trade good resource type. Returns int.MaxValue for non-trade goods.
         /// </summary>
-        public bool TrySpend(ResourceType type, int amount)
+        public int GetStorageLevel(ResourceType type)
         {
-            if (!TryGetResourceData(type, out var data)) return false;
-            if (data.Amount < amount) return false;
+            if (!type.IsTradeGood())
+            {
+                Debug.LogWarning($"[GameDataService] Requested storage level for non-trade good type {type}. Returning int.MaxValue.");
+                return int.MaxValue;
+            }
 
-            data.Amount -= amount;
-            OnResourceChanged?.Invoke(type);
+            try
+            {
+                int level = _playerData.StorageLevels[type];
+                return level;
 
-            // Optional: Auto-save on critical currency spending? 
-            // Better to rely on OnPause for performance.
-
-            return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"[GameDataService] Failed to get storage level for resource type {type}: {ex.Message}");
+            }
         }
 
         /// <summary>
-        /// Transactional spend: Either ALL costs are paid, or NONE.
-        /// Prevents partial state updates if player can afford item A but not item B.
+        /// Sets the storage capacity level for the specified trade good resource type. Performs no action if the type is not a trade good.
         /// </summary>
-        public bool TrySpend(IReadOnlyList<ResourceData> cost)
+        /// <param name="type">Trade good type for which the level needs to be set.</param>
+        /// <param name="level">New storage level.</param>
+        public void SetStorageLevel(ResourceType type, int level)
         {
-            if (!CanAfford(cost)) return false;
-
-            foreach (var item in cost)
+            if (!type.IsTradeGood())
             {
-                // We utilize the private method or direct access since we already checked affordability
-                if (TryGetResourceData(item.Type, out var data))
-                {
-                    data.Amount -= item.Amount;
-                    OnResourceChanged?.Invoke(item.Type);
-                }
+                Debug.LogWarning($"[GameDataService] Attempted to set storage level for non-trade good type {type}.");
+                return;
             }
 
-            return true;
-        }
-
-        public void AddResource(ResourceType type, int amount)
-        {
-            if (amount <= 0) return;
-
-            if (TryGetResourceData(type, out var data))
+            try
             {
-                // Cap at MaxCapacity
-                data.Amount = Math.Min(data.Amount + amount, data.MaxCapacity);
-                OnResourceChanged?.Invoke(type);
+                _playerData.StorageLevels[type] = level;
+                _isDirty = true;
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"[GameDataService] Failed to set storage level for resource type {type}: {ex.Message}");
             }
         }
 
-        public void AddResources(IReadOnlyList<ResourceData> income)
-        {
-            if (income == null) return;
-
-            foreach (var item in income)
-            {
-                AddResource(item.Type, item.Amount);
-            }
-        }
-
-        public void UpgradeCapacity(ResourceType type, int additionalCapacity)
-        {
-            if (type.IsCurrency()) return; // Currencies usually don't have caps
-
-            if (TryGetResourceData(type, out var data))
-            {
-                data.MaxCapacity += additionalCapacity;
-                OnResourceChanged?.Invoke(type);
-
-                // Immediately save after an upgrade is a good practice
-                SavePlayerData();
-            }
-        }
-
+        /// <summary>
+        /// Returns the scheduled date and time for the next trade refresh.
+        /// </summary>
         public DateTime GetNextTradeRefreshTime()
         {
             return _playerData.NextTradeRefreshTime;
         }
 
+        /// <summary>
+        /// Sets the next scheduled time when trades will be refreshed.
+        /// </summary>
         public void SetNextTradeRefreshTime(DateTime time)
         {
             _playerData.NextTradeRefreshTime = time;
-            SavePlayerData();
+            _isDirty = true;
         }
 
-        public List<TradeOfferData> GetActiveOffers()
+        /// <summary>
+        /// Retrieves a list of all active trade offers for the current player.
+        /// </summary>
+        /// <returns>A list of <see cref="TradeOfferData"/> objects representing the player's active trade offers.
+        public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
-            return _playerData.ActiveTradeOffers;
+            return _playerData.ActiveTradeOffers.AsReadOnly();
         }
 
-        public void SaveActiveOffers(List<TradeOfferData> offers)
+        /// <summary>
+        /// Saves the specified list of active trade offers
+        /// </summary>
+        public void SaveActiveOffers(IReadOnlyList<TradeOfferData> offers)
         {
             _playerData.ActiveTradeOffers = new List<TradeOfferData>(offers);
-            SavePlayerData();
+            _isDirty = true;
         }
+
+        /// <summary>
+        /// Determines if its first session for the player.
+        /// </summary>
+        public bool IsFirstSession() => _playerData.IsFirstSession;
 
         #endregion
 
         #region Helpers
 
-        private bool TryGetResourceData(ResourceType type, out ResourceData data)
+        // The only method that changes the value of the player's resources
+        private void ApplyResourceChange(ResourceType type, int oldValue, int newValue)
         {
-            if (_resourceLookup != null && _resourceLookup.TryGetValue(type, out data))
+            if (oldValue == newValue) return;
+
+            try
             {
-                return true;
+                _playerData.Resources[type] = newValue;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"[GameDataService] Failed to apply resource change for type {type}: {ex.Message}");
             }
 
-            Debug.LogError($"[GameDataService] Resource {type} not found in lookup!");
-            data = null;
-            return false;
+            var changeData = new ResourceChangeData(type, oldValue, newValue);
+            OnResourceChanged?.Invoke(changeData);
+
+            _isDirty = true;
+        }
+
+        // Private method that determines whether a single transaction operation is possible for a given type and amount. Delegates logic to handlers or applies default
+        private bool CanApplyTransactionOperation(ResourceType type, int currentAmount, int delta)
+        {
+            // Use handler logic if exists
+            if (_logicHandlers.TryGetValue(type, out var handler))
+                return handler.CanApplyTransactionOperation(type, currentAmount, delta);
+
+            // Default logic
+            return delta < 0 ? currentAmount >= Mathf.Abs(delta) : true;
+        }
+
+        // Private method that calculates single transaction operation for a given type and amount. Delegates logic to handlers or applies default
+        private int CalculateTransactionOperation(ResourceType type, int currentAmount, int delta)
+        {
+            // Use handler logic if exists
+            if (_logicHandlers.TryGetValue(type, out var handler))
+                return handler.CalculateTransactionOperation(type, currentAmount, delta);
+
+            // Default logic
+            return Mathf.Max(currentAmount + delta, 0);
         }
 
         #endregion

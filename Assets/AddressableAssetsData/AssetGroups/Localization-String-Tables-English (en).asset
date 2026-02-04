@@ -15,6 +15,12 @@ MonoBehaviour:
   m_GroupName: Localization-String-Tables-English (en)
   m_GUID: 346859c7d3ac93e43bc9fe287f5cc78f
   m_SerializeEntries:
+  - m_GUID: 16d2fa91900221943bc671acf76b7765
+    m_Address: LawScreen_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 22932e6e81f57254790234a6e25b49cd
     m_Address: TradesScreen_en
     m_ReadOnly: 1

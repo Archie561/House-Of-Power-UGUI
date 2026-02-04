@@ -43,6 +43,30 @@ MonoBehaviour:
     m_Key: Resources.Gems
     m_Metadata:
       m_Items: []
+  - m_Id: 18478162708488192
+    m_Key: Resources.Healthcare
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478254861541376
+    m_Key: Resources.Infrastructure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478398331904000
+    m_Key: Resources.Science
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478447451398144
+    m_Key: Resources.Ecology
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478491248320512
+    m_Key: Resources.Education
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478532843233280
+    m_Key: Resources.Welfare
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

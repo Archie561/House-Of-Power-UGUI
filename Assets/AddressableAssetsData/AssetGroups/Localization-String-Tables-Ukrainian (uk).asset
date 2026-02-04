@@ -15,6 +15,12 @@ MonoBehaviour:
   m_GroupName: Localization-String-Tables-Ukrainian (uk)
   m_GUID: 11dbb3033d5a76540b3d9d11d06cb4be
   m_SerializeEntries:
+  - m_GUID: 196bb7761b75a5b4797a4b7f703ec366
+    m_Address: LawScreen_uk
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-uk
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5ad9f311f4a77714f92123a12c41332e
     m_Address: Resources_uk
     m_ReadOnly: 1

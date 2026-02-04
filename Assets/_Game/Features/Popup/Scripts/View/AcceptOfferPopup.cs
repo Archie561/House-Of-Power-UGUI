@@ -50,8 +50,8 @@ namespace Game.Features.Popup
             ClearContainer(_exportTransform);
 
             // Populate new views
-            AddResourcesView(popupData.OfferData.Import, true);
-            AddResourcesView(popupData.OfferData.Export, false);
+            AddResourcesView(popupData.OfferData.Import, isExport: false);
+            AddResourcesView(popupData.OfferData.Export, isExport: true);
 
             // Update Button State
             _acceptButtonCanvasGroup.blocksRaycasts = popupData.CanAfford;
@@ -77,14 +77,14 @@ namespace Game.Features.Popup
             }
         }
 
-        private void AddResourcesView(IReadOnlyList<ResourceData> resources, bool isImport)
+        private void AddResourcesView(IReadOnlyList<ResourceAmount> resources, bool isExport)
         {
             if (resources == null) return;
 
             foreach (var resource in resources)
             {
-                var resourceView = Instantiate(_resourceAmountPrefab, isImport ? _importTransform : _exportTransform);
-                resourceView.Initialize(resource, isImport);
+                var resourceView = Instantiate(_resourceAmountPrefab, isExport ? _exportTransform : _importTransform);
+                resourceView.Initialize(resource, isExport);
             }
         }
     }

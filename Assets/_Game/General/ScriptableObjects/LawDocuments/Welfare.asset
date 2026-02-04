@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bae795113ae1e4c4297d4242af2419d7, type: 3}
+  m_Name: Welfare
+  m_EditorClassIdentifier: Assembly-CSharp::Game.General.DocumentDefinition
+  _type: 5
+  _localizedAuthor:
+    m_TableReference:
+      m_TableCollectionName: GUID:650b9fa339f07af4498e934717f2ac0f
+    m_TableEntryReference:
+      m_KeyId: 718833934336
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  _sprite: {fileID: 267317177270530301, guid: 33c0d297fd6e6bb4a9e1a3fc5fcdf742, type: 3}
+  references:
+    version: 2
+    RefIds: []

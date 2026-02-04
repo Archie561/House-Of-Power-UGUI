@@ -46,6 +46,30 @@ MonoBehaviour:
     m_Localized: Gems
     m_Metadata:
       m_Items: []
+  - m_Id: 18478162708488192
+    m_Localized: Healthcare
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478254861541376
+    m_Localized: Infrastructure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478398331904000
+    m_Localized: Science
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478447451398144
+    m_Localized: Ecology
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478491248320512
+    m_Localized: Education
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18478532843233280
+    m_Localized: Welfare
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

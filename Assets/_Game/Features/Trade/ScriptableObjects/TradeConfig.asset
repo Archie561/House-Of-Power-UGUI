@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c46099f4db5b024a9bf0077c99c5e13, type: 3}
+  m_Name: TradeConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Features.Trade.TradeConfig
+  RefreshTradesCooldown: 600
+  SkipRefreshGemCost: 5
+  OffersToGenerate: 8
+  StorageCapacities: 64000000c80000002c01000090010000
+  StandartUpgradeCosts: 320000006400000096000000c8000000
+  PremiumUpgradeCosts: 0a0000000f0000001400000019000000

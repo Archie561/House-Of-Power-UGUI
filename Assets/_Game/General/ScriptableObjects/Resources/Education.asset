@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecdcffc2d38d1924c81399de64366bab, type: 3}
+  m_Name: Education
+  m_EditorClassIdentifier: Assembly-CSharp::Game.General.ResourceDefinition
+  _type: 24
+  _localizedName:
+    m_TableReference:
+      m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
+    m_TableEntryReference:
+      m_KeyId: 18478491248320512
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  _icon: {fileID: -1409831941713524067, guid: 53c16f5e6479b16449f4449c4c7d8453, type: 3}
+  references:
+    version: 2
+    RefIds: []

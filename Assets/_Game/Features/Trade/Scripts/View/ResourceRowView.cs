@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace Game.Features.Trade
 {
     /// <summary>
-    /// Displays a full row for a resource in the inventory/storage list.
+    /// Displays a full row for a resource in the storage list.
     /// Includes icon, name, capacity bar, and an upgrade button.
     /// </summary>
     public class ResourceRowView : MonoBehaviour
@@ -28,21 +28,16 @@ namespace Game.Features.Trade
         /// <summary>
         /// Initializes the row with static data and sets up the upgrade button callback.
         /// </summary>
-        public void Initialize(ResourceData data, Action<ResourceType> onAddCallback)
+        public void Initialize(ResourceType type, Action<ResourceType> onAddCallback)
         {
-            if (data == null) return;
+            var definition = _library.GetDef(type);
+            if (definition == null) return;
 
-            var definition = _library.GetDef(data.Type);
-            if (definition != null)
-            {
-                _image.sprite = definition.Icon;
-                _nameLocalizer.StringReference = definition.LocalizedName;
-            }
-
-            UpdateView(data.Amount, data.MaxCapacity);
+            _image.sprite = definition.Icon;
+            _nameLocalizer.StringReference = definition.LocalizedName;
 
             _addButton.onClick.RemoveAllListeners();
-            _addButton.onClick.AddListener(() => onAddCallback?.Invoke(data.Type));
+            _addButton.onClick.AddListener(() => onAddCallback?.Invoke(type));
         }
 
         /// <summary>

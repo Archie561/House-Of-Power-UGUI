@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bae795113ae1e4c4297d4242af2419d7, type: 3}
+  m_Name: Agriculture
+  m_EditorClassIdentifier: Assembly-CSharp::Game.General.DocumentDefinition
+  _type: 6
+  _localizedAuthor:
+    m_TableReference:
+      m_TableCollectionName: GUID:650b9fa339f07af4498e934717f2ac0f
+    m_TableEntryReference:
+      m_KeyId: 26115268608
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  _sprite: {fileID: -6953108546809799461, guid: 8423a4a9327ee4a4083d8337614c611f, type: 3}
+  references:
+    version: 2
+    RefIds: []
