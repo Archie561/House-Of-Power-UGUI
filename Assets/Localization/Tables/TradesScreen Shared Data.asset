@@ -16,11 +16,11 @@ MonoBehaviour:
   m_TableCollectionNameGuidString: 6cd4134f7afc6fe45a22833e2ba119c8
   m_Entries:
   - m_Id: 40233295872
-    m_Key: TradesScreen.ResourcesHeader
+    m_Key: TradeScreen.ResourcesHeader
     m_Metadata:
       m_Items: []
   - m_Id: 136756813824
-    m_Key: TradesScreen.OffersHeader
+    m_Key: TradeScreen.OffersHeader
     m_Metadata:
       m_Items: []
   m_Metadata:

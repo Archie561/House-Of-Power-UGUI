@@ -11,30 +11,42 @@ namespace Game.General
     [Serializable]
     public class PlayerData
     {
+        // General
         public Dictionary<ResourceType, int> Resources;
-        public Dictionary<ResourceType, int> StorageLevels;
         public bool IsFirstSession;
 
-        public DateTime NextTradeRefreshTime;
+        // Trade Module
+        public Dictionary<ResourceType, int> StorageLevels;
         public List<TradeOfferData> ActiveTradeOffers;
+        public DateTime NextTradeRefreshTime;
+
+        // Law Module
+        public HashSet<string> UsedLawIds;
+        public string ActiveLawId;
+        public DateTime NextLawsRefreshTime;
 
         /// <summary>
         /// Creates a new instance of PlayerData.
-        /// Automatically initializes lists to empty if null is passed.
         /// </summary>
         public PlayerData(
             Dictionary<ResourceType, int> resources,
-            Dictionary<ResourceType, int> storageLevels,
             bool isFirstSession,
+            Dictionary<ResourceType, int> storageLevels,
+            List<TradeOfferData> activeTradeOffers,
             DateTime nextTradeRefreshTime,
-            List<TradeOfferData> activeTradeOffers)
+            string activeLawId,
+            DateTime nextLawsRefreshTime)
         {
             Resources = resources;
-            StorageLevels = storageLevels;
-
             IsFirstSession = isFirstSession;
-            NextTradeRefreshTime = nextTradeRefreshTime;
+
+            StorageLevels = storageLevels;
             ActiveTradeOffers = activeTradeOffers;
+            NextTradeRefreshTime = nextTradeRefreshTime;
+
+            UsedLawIds = new HashSet<string>();
+            ActiveLawId = activeLawId;
+            NextLawsRefreshTime = nextLawsRefreshTime;
         }
     }
 }

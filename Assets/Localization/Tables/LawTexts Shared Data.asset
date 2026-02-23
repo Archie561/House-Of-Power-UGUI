@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: LawTexts Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: LawTexts
+  m_TableCollectionNameGuidString: b03910718b6666341863bb8efa1c7c5e
+  m_Entries:
+  - m_Id: 898681495552
+    m_Key: law_0001
+    m_Metadata:
+      m_Items: []
+  - m_Id: 898748604416
+    m_Key: law_0002
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501699477504
+    m_Key: law_0003
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501762392064
+    m_Key: law_0004
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586368
+    m_Key: law_0005
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586369
+    m_Key: law_0006
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586370
+    m_Key: law_0007
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586371
+    m_Key: law_0008
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586372
+    m_Key: law_0009
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586373
+    m_Key: law_0010
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586374
+    m_Key: law_0011
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586375
+    m_Key: law_0012
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586376
+    m_Key: law_0013
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586377
+    m_Key: law_0014
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586378
+    m_Key: law_0015
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586379
+    m_Key: law_0016
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586380
+    m_Key: law_0017
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 4141964164406444109
+  references:
+    version: 2
+    RefIds:
+    - rid: 4141964164406444109
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1771777904609

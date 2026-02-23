@@ -94,6 +94,18 @@ MonoBehaviour:
     m_Localized: Proposal
     m_Metadata:
       m_Items: []
+  - m_Id: 9019956252860416
+    m_Localized: Domestic Policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9138060307947520
+    m_Localized: Accept
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9138111553953792
+    m_Localized: Decline
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -7,13 +7,19 @@ namespace Game.Features.Trade
     public class TradeConfig : ScriptableObject
     {
         [Header("General")]
-        public float RefreshTradesCooldown = 600f;
-        public int SkipRefreshGemCost = 5;
-        public int OffersToGenerate = 8;
+        [SerializeField] private float _refreshTradesCooldown = 600f;
+        [SerializeField] private int _skipRefreshGemCost = 5;
+        [SerializeField] private int _offersToGenerate = 8;
 
         [Header("Modules")]
-        public StorageUpgradeSettings StorageSettings;
-        public OfferGenerationSettings GenerationSettings;
+        [SerializeField] private StorageUpgradeSettings _storageSettings;
+        [SerializeField] private OfferGenerationSettings _generationSettings;
+
+        public float RefreshTradesCooldown => _refreshTradesCooldown;
+        public int SkipRefreshGemCost => _skipRefreshGemCost;
+        public int OffersToGenerate => _offersToGenerate;
+        public StorageUpgradeSettings StorageSettings => _storageSettings;
+        public OfferGenerationSettings GenerationSettings => _generationSettings;
     }
 
     [Serializable]

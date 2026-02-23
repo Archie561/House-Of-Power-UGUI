@@ -1,6 +1,6 @@
 using DG.Tweening;
 using Game.General;
-using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
@@ -15,6 +15,7 @@ namespace Game.Features.Law
         [Header("UI References")]
         [SerializeField] private Slider _fillBar;
         [SerializeField] private Image _policyIcon;
+        [SerializeField] private TextMeshProUGUI _levelText;
         [SerializeField] private LocalizeStringEvent _nameLocalizer;
 
         [Header("Config")]
@@ -36,8 +37,10 @@ namespace Game.Features.Law
         /// <summary>
         /// Updates dynamic data (amount and progress bar) without re-initializing the whole view.
         /// </summary>
-        public void UpdateView(int amount, int maxValue)
+        public void UpdateView(int level, int amount, int maxValue)
         {
+            _levelText.text = $"Lv. {level}";
+
             // Prevent division by zero
             float fillAmount = maxValue > 0 ? (float)amount / maxValue : 0f;
             fillAmount = Mathf.Clamp01(fillAmount);

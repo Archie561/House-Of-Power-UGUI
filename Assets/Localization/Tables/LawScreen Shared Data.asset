@@ -67,6 +67,18 @@ MonoBehaviour:
     m_Key: LawScreen.DocumentHeader
     m_Metadata:
       m_Items: []
+  - m_Id: 9019956252860416
+    m_Key: LawScreen.PoliciesPanelHeader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9138060307947520
+    m_Key: LawScreen.AcceptLaw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9138111553953792
+    m_Key: LawScreen.DeclineLaw
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

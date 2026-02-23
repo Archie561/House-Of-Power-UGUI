@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6af0b8a9b14f0a43a1a57680c59cfe1, type: 3}
+  m_Name: LawConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Features.Law.LawConfig
+  _allLaws:
+  - _id: law_0001
+    _type: 0
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0002
+    _type: 4
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0003
+    _type: 2
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0004
+    _type: 0
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0005
+    _type: 6
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0006
+    _type: 7
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0007
+    _type: 4
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0008
+    _type: 8
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0009
+    _type: 9
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0010
+    _type: 3
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0011
+    _type: 10
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0012
+    _type: 11
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0013
+    _type: 0
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0014
+    _type: 1
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0015
+    _type: 4
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0016
+    _type: 2
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  - _id: law_0017
+    _type: 6
+    _onAcceptEffects: []
+    _onRejectEffects: []
+  _baseLawCount: 8
+  _baseRequiredXpForLevel: 10
+  _xpGrowthPerLevel: 10

@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: LawTexts_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: b03910718b6666341863bb8efa1c7c5e, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 898681495552
+    m_Localized: Remove all the asphalt and replace it with trampolines. Traffic
+      collapse is inevitable, but mandatory daily cardio and gentle falls will rapidly
+      improve immunity!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 898748604416
+    m_Localized: Cut down all the rare forests for the sake of printing the latest
+      textbooks on quantum physics! Schoolchildren will become real geniuses, but
+      city squirrels will have to urgently emigrate.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501699477504
+    m_Localized: Mandatory rocket boots for all citizens! Commute times drop to seconds,
+      but the ozone layer will look like Swiss cheese.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501762392064
+    m_Localized: Replace all tap water with energy drinks. No one sleeps, everyone
+      is hyper-productive, but dentists will rule the world.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586368
+    m_Localized: Genetically modify cows to sweat nacho cheese. Hunger is solved
+      forever, but the smell will ruin our national parks.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586369
+    m_Localized: Repurpose all city buses into heavily armored assault vehicles.
+      Commuters will have to walk, but our streets are secure!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586370
+    m_Localized: Require all citizens to perfectly clean their rooms before leaving
+      the house. Total societal order, but teens are furious.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586371
+    m_Localized: Ban physical currency and switch to bottle caps. The economy will
+      boom, but carrying your wallet now requires a wheelbarrow.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586372
+    m_Localized: Replace all court trials with mandatory rap battles. The justice
+      system is finally entertaining, but lawyers are terrible at dropping beats.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586373
+    m_Localized: Force all trees to pay property taxes. Our infrastructure budget
+      will skyrocket, but the forests are planning a violent strike.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586374
+    m_Localized: Officially communicate with other nations using only sarcastic memes.
+      Citizens love the drama, but international aid drops to zero.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586375
+    m_Localized: Construct a massive fan to blow smog to neighboring countries. Clean
+      air for us, but our energy grid will permanently catch on fire.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586376
+    m_Localized: Replace doctors with internet search results. Hospital budgets are
+      saved, but a mild cough is now legally classified as a terminal illness.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586377
+    m_Localized: Pave all roads with bouncy castle material. Commutes are incredibly
+      fun, but the number of sprained ankles has reached catastrophic levels.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586378
+    m_Localized: Replace math classes with advanced wizardry and spellcasting. Kids
+      actually want to study, but they keep turning the teachers into frogs.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586379
+    m_Localized: Legalize unregulated time travel experiments. We might invent the
+      future today, but random historical landmarks keep turning into dust.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 302501766586380
+    m_Localized: Irrigate all crops with triple-shot espresso. The harvest speed
+      is unbelievable, but the vegetables are now too anxious to be eaten.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

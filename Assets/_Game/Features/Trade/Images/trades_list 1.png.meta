@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 7b31cd711d2c2384f97074dae5999d11
+guid: 9cc7be175961a744c8a24f6a0968f3f1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5284103437892352479
-    second: trades_list_0
+      213: -5019102620503189717
+    second: trades_list 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -139,23 +139,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: trades_list_0
+      name: trades_list 1_0
       rect:
         serializedVersion: 2
-        x: 22
-        y: 23
-        width: 1071
-        height: 1702
+        x: 0
+        y: 0
+        width: 1070
+        height: 1701
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 46, y: 51, z: 48, w: 150}
+      border: {x: 55, y: 56, z: 49, w: 152}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: fd97ef39418e45940800000000000000
-      internalID: 5284103437892352479
+      spriteID: b27dcad42c0985ab0800000000000000
+      internalID: -5019102620503189717
       vertices: []
       indices: 
       edges: []
@@ -164,7 +164,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 28ee7329e24a5c84b903ba840ddec8c5
+    spriteID: 02c6799df313740448b9cef1a893320e
     internalID: 0
     vertices: []
     indices: 
@@ -174,7 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      trades_list_0: 5284103437892352479
+      trades_list 1_0: -5019102620503189717
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

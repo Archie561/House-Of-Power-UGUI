@@ -16,17 +16,23 @@ namespace Game.General
         [Header("Initial Resources")]
         [SerializeField] private List<ResourceConfigEntry> _initialResources;
 
+        [Header("Is First Game Session")]
+        [SerializeField] private bool _isFirstGameSession = true;
+
         [Header("Initial Storages")]
         [SerializeField] private List<ResourceConfigEntry> _initialStorageLevels;
 
         [Header("Initial Offers")]
         [SerializeField] private List<TradeOfferConfigEntry> _initialOffers;
 
-        [Header("Next Refresh Time (in seconds)")]
-        [SerializeField] private float _initialRefreshTime = 600f;
+        [Header("Next Trade Refresh Time (in seconds)")]
+        [SerializeField] private float _initialTradeRefreshTime = 600f;
 
-        [Header("Is First Game Session")]
-        [SerializeField] private bool _isFirstGameSession = true;
+        [Header("Initial Law Id")]
+        [SerializeField] private string _initialLawId = "law_0001";
+
+        [Header("Next Laws Refresh Time")]
+        [SerializeField] private float _initialLawsRefreshTime = 600f;
 
         // --- Runtime Accessors (Convertors) ---
         public Dictionary<ResourceType, int> GetInitialResources()
@@ -42,6 +48,11 @@ namespace Game.General
                 }
             }
             return dict;
+        }
+
+        public bool IsFirstGameSession()
+        {
+            return _isFirstGameSession;
         }
 
         public Dictionary<ResourceType, int> GetInitialStorageLevels()
@@ -65,14 +76,19 @@ namespace Game.General
             return _initialOffers.Select(x => x.ToRuntime()).ToList();
         }
 
-        public float GetInitialRefreshTime()
+        public float GetTradeInitialRefreshTime()
         {
-            return _initialRefreshTime;
+            return _initialTradeRefreshTime;
         }
 
-        public bool IsFirstGameSession()
+        public string GetInitialLawId()
         {
-            return _isFirstGameSession;
+            return _initialLawId;
+        }
+
+        public float GetLawsInitialRefreshTime()
+        {
+            return _initialLawsRefreshTime;
         }
     }
 

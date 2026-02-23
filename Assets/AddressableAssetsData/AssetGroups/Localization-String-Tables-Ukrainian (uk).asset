@@ -45,6 +45,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-uk
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f8e43f9bfa0bcd24793c8f9b6b929a14
+    m_Address: LawTexts_uk
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-uk
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: c68e098b4e8c41b4e8c15f41c4d802d0, type: 2}
   m_SchemaSet:

@@ -14,7 +14,7 @@ namespace Game.Features.Law
     {
         [Header("UI References")]
         [SerializeField] private Image _documentImage;
-        [SerializeField] private TextMeshProUGUI _lawText;
+        [SerializeField] private LocalizeStringEvent _lawText;
         [SerializeField] private LocalizeStringEvent _authorText;
 
         [Header("Config")]
@@ -25,7 +25,7 @@ namespace Game.Features.Law
         /// </summary>
         /// <param name="type">Type of document (e.g. healthcare, economy, etc.)</param>
         /// <param name="localizedContent">Localized law text.</param>
-        public void Initialize(DocumentType type, string localizedContent)
+        public void Initialize(DocumentType type, string contentReference)
         {
             var definition = _documentLibrary.GetDef(type);
             if (definition != null)
@@ -34,7 +34,7 @@ namespace Game.Features.Law
                 _authorText.StringReference = definition.LocalizedAuthor;
             }
 
-            _lawText.text = localizedContent;
+            _lawText.StringReference.TableEntryReference = contentReference;
         }
     }
 }

@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game.General
@@ -132,10 +133,9 @@ namespace Game.General
             // Initial Game State Configuration
             Dictionary<ResourceType, int> resources = _gameConfig.GetInitialResources();
             Dictionary<ResourceType, int> storageLevels = _gameConfig.GetInitialStorageLevels();
-            List<TradeOfferData> activeTradeOffers = _gameConfig.GetInitialOffers();
 
-            DateTime nextRefresh = DateTime.Now.AddSeconds(_gameConfig.GetInitialRefreshTime());
-            bool isFirstSession = _gameConfig.IsFirstGameSession();
+            DateTime nextTradeRefresh = DateTime.Now.AddSeconds(_gameConfig.GetTradeInitialRefreshTime());
+            DateTime nextLawRefresh = DateTime.Now.AddSeconds(_gameConfig.GetLawsInitialRefreshTime());
 
             // Ensure all enums exist (safety check)
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
@@ -153,11 +153,12 @@ namespace Game.General
 
             return new PlayerData(
                 resources,
+                _gameConfig.IsFirstGameSession(),
                 storageLevels,
-                isFirstSession,
-                nextRefresh,
-                activeTradeOffers
-            );
+                _gameConfig.GetInitialOffers(),
+                nextTradeRefresh,
+                _gameConfig.GetInitialLawId(),
+                nextLawRefresh);
         }
 
         #endregion
@@ -352,6 +353,64 @@ namespace Game.General
         /// Determines if its first session for the player.
         /// </summary>
         public bool IsFirstSession() => _playerData.IsFirstSession;
+
+        #endregion
+
+        #region Laws Public API
+
+        /// <summary>
+        /// Gets the identifier of the currently active law for the player.
+        /// </summary>
+        public string GetActiveLawId()
+        {
+            return _playerData.ActiveLawId;
+        }
+
+        /// <summary>
+        /// Sets the active law identifier for the player data.
+        /// </summary>
+        public void SaveActiveLawId(string id)
+        {
+            _playerData.ActiveLawId = id;
+            _isDirty = true;
+        }
+
+        /// <summary>
+        /// Gets the collection of identifiers for the laws that was already used by the player.
+        /// </summary>
+        public IReadOnlyCollection<string> GetUsedLawIds()
+        {
+            return _playerData.UsedLawIds;
+        }
+
+        /// <summary>
+        /// Records the specified law identifier as used if it has not already been saved.
+        /// </summary>
+        public void SaveUsedLawId(string id)
+        {
+            if (!_playerData.UsedLawIds.Contains(id))
+            {
+                _playerData.UsedLawIds.Add(id);
+                _isDirty = true;
+            }
+        }
+
+        /// <summary>
+        /// Gets the scheduled date and time for the next refresh of the laws data.
+        /// </summary>
+        public DateTime GetNextLawsRefreshTime()
+        {
+            return _playerData.NextLawsRefreshTime;
+        }
+
+        /// <summary>
+        /// Sets the scheduled time for the next refresh of laws in the player's data.
+        /// </summary>
+        public void SetNextLawsRefreshTime(DateTime time)
+        {
+            _playerData.NextLawsRefreshTime = time;
+            _isDirty = true;
+        }
 
         #endregion
 

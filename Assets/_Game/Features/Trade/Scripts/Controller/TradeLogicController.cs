@@ -81,7 +81,7 @@ namespace Game.Features.Trade
         /// </summary>
         public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
-            if (_activeOffersCache == null)
+            if (_activeOffersCache.Count == 0)
             {
                 LoadActiveOffers();
             }

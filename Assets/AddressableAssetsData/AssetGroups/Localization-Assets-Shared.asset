@@ -30,6 +30,11 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b03910718b6666341863bb8efa1c7c5e
+    m_Address: Assets/Localization/Tables/LawTexts Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b66e7197be46fe0499a5f9b73f951c5c
     m_Address: Assets/Localization/Tables/Popups Shared Data.asset
     m_ReadOnly: 1

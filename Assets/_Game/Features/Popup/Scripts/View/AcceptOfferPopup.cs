@@ -14,6 +14,7 @@ namespace Game.Features.Popup
     {
         [Header("UI References")]
         [SerializeField] private LocalizeStringEvent _descriptionLocalizer;
+        [SerializeField] private Image _flagIcon;
         [SerializeField] private Transform _exportTransform;
         [SerializeField] private Transform _importTransform;
         [SerializeField] private Button _acceptButton;
@@ -41,6 +42,8 @@ namespace Game.Features.Popup
             var definition = _countryLibrary.GetDef(popupData.OfferData.CountryId);
             if (definition != null)
             {
+                _flagIcon.sprite = definition.FlagIcon;
+
                 _descriptionLocalizer.StringReference.Arguments = new object[] { definition.LocalizedName.GetLocalizedString() };
                 _descriptionLocalizer.RefreshString();
             }
