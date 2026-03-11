@@ -158,6 +158,7 @@ namespace Game.General
                 _gameConfig.GetInitialOffers(),
                 nextTradeRefresh,
                 _gameConfig.GetInitialLawId(),
+                _gameConfig.GetInitialLawsCount(),
                 nextLawRefresh);
         }
 
@@ -372,6 +373,23 @@ namespace Game.General
         public void SaveActiveLawId(string id)
         {
             _playerData.ActiveLawId = id;
+            _isDirty = true;
+        }
+
+        /// <summary>
+        /// Gets the number of laws available for the player to execute.
+        /// </summary>
+        public int GetAvailableLawsCount()
+        {
+            return _playerData.LawsLeftToExecute;
+        }
+
+        /// <summary>
+        /// Sets the number of laws available for the player to execute.
+        /// </summary>
+        public void UpdateAvailableLawsCount(int newCount)
+        {
+            _playerData.LawsLeftToExecute = newCount >= 0 ? newCount : 0;
             _isDirty = true;
         }
 

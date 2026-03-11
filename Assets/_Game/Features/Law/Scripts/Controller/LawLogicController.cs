@@ -19,13 +19,19 @@ namespace Game.Features.Law
 
         // --- Events ---
         public event Action<ResourceType> OnPolicyAmountChanged;
+        public event Action<int> OnLawsCountChanged;
+        public event Action<int> OnTimerTick;
 
         // --- State ---
         private List<LawData> _availableLaws = new List<LawData>();
+        private bool _isInitialized = false;
         private LawData _activeLaw;
         private int _lawsLeftToExecute;
 
-        #region Unity Lifecycle
+        private DateTime _nextReplenishTime;
+        private int _lastIntTimer = -1; // For UI events optimization
+
+        #region Unity Lifecycle & Initialization
 
         private void Awake()
         {
@@ -42,23 +48,52 @@ namespace Game.Features.Law
 
         private void Start()
         {
-            InitializeAvailableLaws();
-            LoadActiveLaw();
+            GameDataService.Instance.OnResourceChanged += HandleResourceChange;
+
+            EnsureInitialized();
         }
 
-        private void InitializeAvailableLaws()
+        private void Update()
         {
-            var usedLawIds = GameDataService.Instance.GetUsedLawIds();
+            if (!_isInitialized) return;
+
+            HandleTimerTick();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            GameDataService.Instance.OnResourceChanged -= HandleResourceChange;
+        }
+
+        private void EnsureInitialized()
+        {
+            if (_isInitialized) return;
+
+            InitializeLaws();
+            InitializeTimer();
+
+            _isInitialized = true;
+        }
+
+        // Initializes the list of available laws based on the configuration and game data, and sets the active law if one is already selected.
+        private void InitializeLaws()
+        {
+            var usedLawIds = new HashSet<string>(GameDataService.Instance.GetUsedLawIds());
             _availableLaws = _lawConfig.GetAllLaws().Where(law => !usedLawIds.Contains(law.Id)).ToList();
+
+            _lawsLeftToExecute = GameDataService.Instance.GetAvailableLawsCount();
+
+            _activeLaw = _availableLaws.FirstOrDefault(law => law.Id == GameDataService.Instance.GetActiveLawId());
         }
 
-        private void LoadActiveLaw()
+        // Loads the timer state based on saved next refresh time.
+        private void InitializeTimer()
         {
-            _activeLaw = _availableLaws.FirstOrDefault(law => law.Id == GameDataService.Instance.GetActiveLawId());
-             if (_activeLaw == null)
-             {
-                _activeLaw = GetRandomLaw();
-            }
+            _nextReplenishTime = GameDataService.Instance.GetNextLawsRefreshTime();
+            ProcessOfflineProgress();
+            HandleTimerTick(); // To update the timer state immediately after processing offline progress
+            OnLawsCountChanged?.Invoke(_lawsLeftToExecute); // Notify UI about the initial count of available laws after processing offline progress
         }
 
         #endregion
@@ -84,84 +119,171 @@ namespace Game.Features.Law
         }
 
         /// <summary>
-        /// Returns the policy level for the specified policy based on accumulated experience points.
+        /// Calculates the current level, accumulated experience points, and required experience points for the next
+        /// level for a specified resource type.
         /// </summary>
-        public int GetPolicyLevel(ResourceType type)
+        public (int level, int currentXp, int requiredXp) GetPolicyLevelData(ResourceType type)
         {
-            int amount = GameDataService.Instance.GetAmount(type);
-            return (amount / _lawConfig.BaseRequiredXpForLevel) + 1;
+            int totalXp = GameDataService.Instance.GetAmount(type);
+
+            int currentLevel = 1;
+            int requiredXp = _lawConfig.BaseRequiredXpForLevel;
+
+            // Subtracting the necessary experience until there are enough total points
+            while (totalXp >= requiredXp)
+            {
+                totalXp -= requiredXp;
+                currentLevel++;
+                requiredXp += _lawConfig.XpIncreasePerLevel;
+            }
+
+            // What is left in totalXp after all subtractions is the current level progress
+            return (currentLevel, totalXp, requiredXp);
         }
 
-        /// <summary>
-        /// Returns the policy amount for the specified resource type based on the current game data.
-        /// </summary>
-        public int GetCalculatedPolicyAmount(ResourceType type)
+        private void HandleResourceChange(ResourceChangeData data)
         {
-            int amount = GameDataService.Instance.GetAmount(type);
-            return amount % _lawConfig.BaseRequiredXpForLevel;
-        }
-
-        /// <summary>
-        /// Returns the maximum policy value for the specified resource type.
-        /// </summary>
-        public int GetCalculatedPolicyMaxValue(ResourceType type)
-        {
-            return _lawConfig.BaseRequiredXpForLevel;
+            if (data.Type.IsPolicyValue())
+            {
+                OnPolicyAmountChanged?.Invoke(data.Type);
+            }
         }
 
         #endregion
 
         #region Laws Logic
 
-        public LawData GetActiveLaw()
+        /// <summary>
+        /// Returns the active law if the player has laws left available to execute. Otherwise, returns null.
+        /// </summary>
+        public bool TryGetActiveLaw(out LawData law)
         {
-            if (_activeLaw == null)
+            EnsureInitialized();
+
+            if (_activeLaw == null && _lawsLeftToExecute > 0)
             {
-                InitializeAvailableLaws();
-                LoadActiveLaw();
+                _activeLaw = GetRandomLaw();
+                GameDataService.Instance.SaveActiveLawId(_activeLaw.Id);
             }
 
-            return _activeLaw;
+            law = _activeLaw;
+            return law != null;
         }
 
-        public void MakeDecision(bool accepted)
+        /// <summary>
+        /// Executes the currently active law, applying its effects and updating the list of available laws.
+        /// </summary>
+        public void ExecuteActiveLaw(bool accepted)
         {
             if (_activeLaw == null) return;
 
             var law = _activeLaw;
             _activeLaw = null;
 
-            _lawsLeftToExecute--;
             _availableLaws.Remove(law);
             GameDataService.Instance.SaveUsedLawId(law.Id);
-            // ...
-        }
-
-        public bool TryGetNextLaw(out LawData law)
-        {
-            if (_activeLaw != null)
+            
+            List<TransactionOperation> transaction = new List<TransactionOperation>();
+            var effects = accepted ? law.OnAcceptEffects : law.OnRejectEffects;
+            foreach (var effect in effects)
             {
-                law = _activeLaw;
-                return true;
+                transaction.Add(new TransactionOperation(effect.Type, effect.Amount, forceApply: true));
             }
 
-            if (_lawsLeftToExecute <= 0)
+            GameDataService.Instance.TryApplyTransaction(transaction);
+            if (_lawsLeftToExecute == _lawConfig.MaxAvailableLaws)
             {
-                 law = null;
-                 return false;
+                _nextReplenishTime = DateTime.UtcNow.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
+                GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
             }
 
-            law = GetRandomLaw();
-            _activeLaw = law;
+            _lawsLeftToExecute--;
+            GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
 
-            GameDataService.Instance.SaveActiveLawId(law.Id);
-
-            return true;
+            OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
         }
 
         private LawData GetRandomLaw()
         {
             return _availableLaws[UnityEngine.Random.Range(0, _availableLaws.Count)];
+        }
+
+        #endregion
+
+        #region Timer Logic
+
+        private void ProcessOfflineProgress()
+        {
+            if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
+
+            DateTime now = DateTime.UtcNow;
+
+            // Якщо час наступного відновлення вже в минулому
+            if (now >= _nextReplenishTime)
+            {
+                // Рахуємо, скільки ЧАСУ пройшло з моменту, коли мав з'явитися перший закон
+                TimeSpan passedTime = now - _nextReplenishTime;
+
+                // +1 закон, бо _nextReplenishTime вже настав, плюс ті, що "накапали" після нього
+                int lawsToRecover = 1 + (int)(passedTime.TotalSeconds / _lawConfig.ReplenishCooldownSeconds);
+
+                _lawsLeftToExecute += lawsToRecover;
+
+                // Перевіряємо, чи не вперлися в ліміт
+                if (_lawsLeftToExecute > _lawConfig.MaxAvailableLaws)
+                {
+                    _lawsLeftToExecute = _lawConfig.MaxAvailableLaws;
+                }
+                else
+                {
+                    // Якщо відновилися не всі, ставимо новий час для наступного.
+                    // Використовуємо остачу від ділення, щоб не "вкрасти" у гравця зайві секунди
+                    double remainderSeconds = passedTime.TotalSeconds % _lawConfig.ReplenishCooldownSeconds;
+                    _nextReplenishTime = now.AddSeconds(_lawConfig.ReplenishCooldownSeconds - remainderSeconds);
+                    GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
+                }
+
+                // Зберігаємо нові дані
+                GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
+            }
+        }
+
+        // Handles the countdown timer logic and triggers events on tick.
+        private void HandleTimerTick()
+        {
+            if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
+
+            TimeSpan diff = _nextReplenishTime - DateTime.UtcNow;
+
+            if (diff.TotalSeconds <= 0)
+            {
+                // Таймер дотикав! Даємо +1 закон
+                _lawsLeftToExecute++;
+
+                if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws)
+                {
+                    _lawsLeftToExecute = _lawConfig.MaxAvailableLaws;
+                }
+                else
+                {
+                    _nextReplenishTime = _nextReplenishTime.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
+                    GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
+                }
+
+                // Зберігаємо стан
+                GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
+
+                // Сповіщаємо UI
+                OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
+            }
+
+            // UI-optimization: Only trigger the timer tick event when the integer value changes
+            int currentIntTimer = Mathf.CeilToInt((float)diff.TotalSeconds);
+            if (currentIntTimer != _lastIntTimer)
+            {
+                _lastIntTimer = currentIntTimer;
+                OnTimerTick?.Invoke(currentIntTimer);
+            }
         }
 
         #endregion
@@ -181,12 +303,28 @@ namespace Game.Features.Law
 
         public int CalculateTransactionOperation(ResourceType type, int currentAmount, int delta)
         {
-            throw new NotImplementedException();
+            if (delta >= 0) return currentAmount + delta;
+
+            int newAmount = currentAmount + delta;
+
+            // Calculating the "floor" for current level
+            int floorXp = 0;
+            int requiredXp = _lawConfig.BaseRequiredXpForLevel;
+            int tempXp = currentAmount;
+
+            while (tempXp >= requiredXp)
+            {
+                tempXp -= requiredXp;
+                floorXp += requiredXp;
+                requiredXp += _lawConfig.XpIncreasePerLevel;
+            }
+
+            return Mathf.Max(newAmount, floorXp);
         }
 
         public bool CanApplyTransactionOperation(ResourceType type, int currentAmount, int delta)
         {
-            throw new NotImplementedException();
+            return true; // For policies, we allow all transactions, but they will be adjusted in CalculateTransactionOperation
         }
 
         #endregion

@@ -15,72 +15,224 @@ MonoBehaviour:
   _allLaws:
   - _id: law_0001
     _type: 0
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 21
+      _amount: -20
+    - _type: 20
+      _amount: 15
+    _onRejectEffects:
+    - _type: 21
+      _amount: 30
+    - _type: 20
+      _amount: -20
+    - _type: 22
+      _amount: 10
   - _id: law_0002
     _type: 4
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 24
+      _amount: 30
+    - _type: 22
+      _amount: 10
+    - _type: 23
+      _amount: -40
+    _onRejectEffects:
+    - _type: 24
+      _amount: -15
+    - _type: 23
+      _amount: 25
   - _id: law_0003
     _type: 2
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 22
+      _amount: 40
+    - _type: 23
+      _amount: -20
+    _onRejectEffects:
+    - _type: 22
+      _amount: -10
+    - _type: 25
+      _amount: 15
   - _id: law_0004
     _type: 0
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 20
+      _amount: -25
+    - _type: 21
+      _amount: 20
+    - _type: 25
+      _amount: 10
+    _onRejectEffects:
+    - _type: 20
+      _amount: 15
+    - _type: 25
+      _amount: -10
   - _id: law_0005
     _type: 6
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 25
+      _amount: 30
+    - _type: 23
+      _amount: -25
+    - _type: 20
+      _amount: -15
+    _onRejectEffects:
+    - _type: 25
+      _amount: -20
+    - _type: 23
+      _amount: 15
   - _id: law_0006
     _type: 7
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 21
+      _amount: -30
+    - _type: 25
+      _amount: -20
+    - _type: 22
+      _amount: 25
+    _onRejectEffects:
+    - _type: 21
+      _amount: 15
+    - _type: 22
+      _amount: -15
   - _id: law_0007
     _type: 4
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 25
+      _amount: 25
+    - _type: 24
+      _amount: 20
+    _onRejectEffects:
+    - _type: 25
+      _amount: -20
+    - _type: 24
+      _amount: -10
   - _id: law_0008
     _type: 8
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 25
+      _amount: -15
+    - _type: 21
+      _amount: 20
+    _onRejectEffects:
+    - _type: 25
+      _amount: 10
   - _id: law_0009
     _type: 9
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 24
+      _amount: -20
+    - _type: 25
+      _amount: 30
+    _onRejectEffects:
+    - _type: 25
+      _amount: -15
+    - _type: 22
+      _amount: 10
   - _id: law_0010
     _type: 3
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 23
+      _amount: -35
+    - _type: 21
+      _amount: 25
+    - _type: 25
+      _amount: 10
+    - _type: 22
+      _amount: 15
+    _onRejectEffects:
+    - _type: 23
+      _amount: 20
+    - _type: 21
+      _amount: -15
   - _id: law_0011
     _type: 10
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 25
+      _amount: 40
+    - _type: 20
+      _amount: -20
+    - _type: 23
+      _amount: -20
+    _onRejectEffects:
+    - _type: 25
+      _amount: -25
   - _id: law_0012
     _type: 11
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 23
+      _amount: 45
+    - _type: 22
+      _amount: -15
+    - _type: 21
+      _amount: -30
+    _onRejectEffects:
+    - _type: 23
+      _amount: -20
+    - _type: 22
+      _amount: 15
   - _id: law_0013
     _type: 0
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 20
+      _amount: -40
+    - _type: 21
+      _amount: 20
+    _onRejectEffects:
+    - _type: 20
+      _amount: 25
+    - _type: 25
+      _amount: -15
   - _id: law_0014
     _type: 1
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 21
+      _amount: -25
+    - _type: 25
+      _amount: 35
+    - _type: 20
+      _amount: -15
+    _onRejectEffects:
+    - _type: 25
+      _amount: -30
   - _id: law_0015
     _type: 4
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 24
+      _amount: 20
+    - _type: 22
+      _amount: -30
+    - _type: 25
+      _amount: 15
+    _onRejectEffects:
+    - _type: 24
+      _amount: -15
+    - _type: 22
+      _amount: 10
   - _id: law_0016
     _type: 2
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 22
+      _amount: 50
+    - _type: 23
+      _amount: -20
+    - _type: 21
+      _amount: -20
+    _onRejectEffects:
+    - _type: 22
+      _amount: -25
   - _id: law_0017
     _type: 6
-    _onAcceptEffects: []
-    _onRejectEffects: []
+    _onAcceptEffects:
+    - _type: 23
+      _amount: -15
+    - _type: 25
+      _amount: 20
+    _onRejectEffects:
+    - _type: 25
+      _amount: -15
+    - _type: 23
+      _amount: 10
   _baseLawCount: 8
-  _baseRequiredXpForLevel: 10
-  _xpGrowthPerLevel: 10
+  _baseRequiredXpForLevel: 100
+  _xpIncreasePerLevel: 10

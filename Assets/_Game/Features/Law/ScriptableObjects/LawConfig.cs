@@ -6,16 +6,20 @@ namespace Game.Features.Law
     [CreateAssetMenu(fileName = "LawConfig", menuName = "Game/Law/Law Config")]
     public class LawConfig : ScriptableObject
     {
-        [Header("General")]
+        [Header("Laws Config")]
         [SerializeField] private List<LawData> _allLaws = new List<LawData>();
-        [SerializeField] private int _baseLawCount = 8;
+        [SerializeField] private int _maxAvailableLaws = 8;
+        [SerializeField] private int _replenishCooldownSeconds = 60;
+
+        [Header("Policy Leveling")]
         [SerializeField] private int _baseRequiredXpForLevel = 100;
-        [SerializeField] private int _xpGrowthPerLevel = 10;
+        [SerializeField] private int _xpIncreasePerLevel = 50;      
 
         public IReadOnlyList<LawData> GetAllLaws() => _allLaws;
-        public int BaseLawCount => _baseLawCount;
+        public int MaxAvailableLaws => _maxAvailableLaws;
+        public int ReplenishCooldownSeconds => _replenishCooldownSeconds;
         public int BaseRequiredXpForLevel => _baseRequiredXpForLevel;
-        public int XpGrowthPerLevel => _xpGrowthPerLevel;
+        public int XpIncreasePerLevel => _xpIncreasePerLevel;
 
         /// <summary>
         /// Method to set the list of laws imported from an TSV file.

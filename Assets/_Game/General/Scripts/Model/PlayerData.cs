@@ -23,6 +23,7 @@ namespace Game.General
         // Law Module
         public HashSet<string> UsedLawIds;
         public string ActiveLawId;
+        public int LawsLeftToExecute;
         public DateTime NextLawsRefreshTime;
 
         /// <summary>
@@ -35,6 +36,7 @@ namespace Game.General
             List<TradeOfferData> activeTradeOffers,
             DateTime nextTradeRefreshTime,
             string activeLawId,
+            int lawsLeftToExecute,
             DateTime nextLawsRefreshTime)
         {
             Resources = resources;
@@ -46,6 +48,7 @@ namespace Game.General
 
             UsedLawIds = new HashSet<string>();
             ActiveLawId = activeLawId;
+            LawsLeftToExecute = lawsLeftToExecute;
             NextLawsRefreshTime = nextLawsRefreshTime;
         }
     }

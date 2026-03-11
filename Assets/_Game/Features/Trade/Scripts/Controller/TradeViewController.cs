@@ -37,6 +37,7 @@ namespace Game.Features.Trade
 
         private void Start()
         {
+            _refreshButton.onClick.RemoveAllListeners();
             _refreshButton.onClick.AddListener(OnRefreshButtonClicked);
         }
 
@@ -125,12 +126,12 @@ namespace Game.Features.Trade
             }
         }
 
-        private void UpdateTimer(float time)
+        private void UpdateTimer(int time)
         {
             if (time < 0) time = 0;
 
-            int m = Mathf.FloorToInt(time / 60F);
-            int s = Mathf.FloorToInt(time % 60F);
+            int m = time / 60;
+            int s = time % 60;
             _refreshTimerText.text = $"{m:00}:{s:00}";
         }
 

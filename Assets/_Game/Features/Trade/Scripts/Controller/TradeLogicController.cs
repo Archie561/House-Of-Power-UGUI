@@ -18,21 +18,22 @@ namespace Game.Features.Trade
 
         // --- State ---
         private List<TradeOfferData> _activeOffersCache = new List<TradeOfferData>();
-        private float _timerSecondsRemaining;
+        private DateTime _nextRefreshTime;
         private bool _isReadyToRefresh;
         private int _lastIntTimer = -1; // For UI events optimization
+        private bool _isInitialized = false;
 
         // --- Dependencies ---
         private TradeOfferGenerator _offerGenerator;
         private StorageUpgradeCalculator _storageUpgradeCalculator;
 
         // --- Events ---
-        public event Action<float> OnTimerTick;
+        public event Action<int> OnTimerTick;
         public event Action<bool> OnRefreshStatusChanged;
         public event Action<IReadOnlyList<TradeOfferData>> OnOffersListUpdated;
         public event Action<ResourceType> OnTradeGoodChanged;
 
-        #region Unity Lifecycle
+        #region Unity Lifecycle & Initialization
 
         private void Awake()
         {
@@ -55,13 +56,12 @@ namespace Game.Features.Trade
         {
             GameDataService.Instance.OnResourceChanged += HandleResourceChange;
 
-            LoadActiveOffers();
-            InitializeTimer();
+            EnsureInitialized();
         }
 
         private void Update()
         {
-            if (_isReadyToRefresh) return;
+            if (!_isInitialized) return;
 
             HandleTimerTick();
         }
@@ -70,6 +70,30 @@ namespace Game.Features.Trade
         {
             if (Instance == this) Instance = null;
             GameDataService.Instance.OnResourceChanged -= HandleResourceChange;
+        }
+
+        private void EnsureInitialized()
+        {
+            if (_isInitialized) return;
+
+            InitializeOffers();
+            InitializeTimer();
+
+            _isInitialized = true;
+        }
+
+        // Loads saved offers from GameDataService. If none exist, creates an empty list.
+        private void InitializeOffers()
+        {
+            var savedOffers = GameDataService.Instance.GetActiveOffers();
+            _activeOffersCache = savedOffers != null ? new List<TradeOfferData>(savedOffers) : new List<TradeOfferData>();
+        }
+
+        // Loads the timer state based on saved next refresh time.
+        private void InitializeTimer()
+        {
+            _nextRefreshTime = GameDataService.Instance.GetNextTradeRefreshTime();
+            HandleTimerTick(); // To initialize the timer state immediately on load
         }
 
         #endregion
@@ -81,10 +105,8 @@ namespace Game.Features.Trade
         /// </summary>
         public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
-            if (_activeOffersCache.Count == 0)
-            {
-                LoadActiveOffers();
-            }
+            EnsureInitialized();
+
             return _activeOffersCache.AsReadOnly();
         }
 
@@ -161,13 +183,6 @@ namespace Game.Features.Trade
             return true;
         }
 
-        // Loads saved offers from GameDataService. If none exist, creates an empty list.
-        private void LoadActiveOffers()
-        {
-            var savedOffers = GameDataService.Instance.GetActiveOffers();
-            _activeOffersCache = savedOffers != null ? new List<TradeOfferData>(savedOffers) : new List<TradeOfferData>();
-        }
-
         // Generates new trade offers and updates the GameDataService. Notifies listeners.
         private void GenerateOffers()
         {
@@ -191,55 +206,36 @@ namespace Game.Features.Trade
 
         public int GetSkipRefreshGemCost() => _config.SkipRefreshGemCost;
 
-        // Loads the timer state based on saved next refresh time.
-        private void InitializeTimer()
-        {
-            DateTime targetTime = GameDataService.Instance.GetNextTradeRefreshTime();
-            TimeSpan diff = targetTime - DateTime.Now;
-
-            if (diff.TotalSeconds <= 0)
-            {
-                _timerSecondsRemaining = 0;
-                SetTimerState(isReady: true);
-            }
-            else
-            {
-                _timerSecondsRemaining = (float)diff.TotalSeconds;
-                SetTimerState(isReady: false);
-            }
-        }
-
         // Handles the countdown timer logic and triggers events on tick.
         private void HandleTimerTick()
         {
-            _timerSecondsRemaining -= Time.deltaTime;
+            if (_isReadyToRefresh) return;
 
-            if (_timerSecondsRemaining <= 0)
+            // Calculating the difference between the target refresh time and the current time to determine how much time is left until the next refresh.
+            TimeSpan diff = _nextRefreshTime - DateTime.UtcNow;
+
+            if (diff.TotalSeconds <= 0)
             {
-                _timerSecondsRemaining = 0;
-                if (DateTime.Now >= GameDataService.Instance.GetNextTradeRefreshTime())
-                {
-                    SetTimerState(true);
-                }
+                SetTimerState(isReady: true);
+                return;
             }
 
-            // Optimize Event Calls: Only fire when integer second changes
-            int currentIntTimer = Mathf.CeilToInt(_timerSecondsRemaining);
+            // UI-optimization: Only trigger the timer tick event when the integer value changes
+            int currentIntTimer = Mathf.CeilToInt((float)diff.TotalSeconds);
             if (currentIntTimer != _lastIntTimer)
             {
                 _lastIntTimer = currentIntTimer;
-                OnTimerTick?.Invoke(_timerSecondsRemaining);
+                OnTimerTick?.Invoke(currentIntTimer);
             }
         }
 
         // Resets the timer to the configured cooldown and updates the next refresh time in GameDataService.
         private void ResetTimer()
         {
-            DateTime newTarget = DateTime.Now.AddSeconds(_config.RefreshTradesCooldown);
-            GameDataService.Instance.SetNextTradeRefreshTime(newTarget);
+            _nextRefreshTime = DateTime.UtcNow.AddSeconds(_config.RefreshTradesCooldown);
+            GameDataService.Instance.SetNextTradeRefreshTime(_nextRefreshTime);
 
-            _timerSecondsRemaining = _config.RefreshTradesCooldown;
-            SetTimerState(false);
+            SetTimerState(isReady: false);
         }
 
         // Updates the timer state and triggers the refresh status changed event.

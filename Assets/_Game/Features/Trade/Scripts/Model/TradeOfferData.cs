@@ -1,5 +1,6 @@
 using Game.General;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Features.Trade
 {
@@ -9,15 +10,19 @@ namespace Game.Features.Trade
     /// </summary>
     public class TradeOfferData
     {
-        public CountryId CountryId { get; }
-        public IReadOnlyList<ResourceAmount> Import { get; }
-        public IReadOnlyList<ResourceAmount> Export { get; }
+        [SerializeField] private CountryId _countryId;
+        [SerializeField] private List<ResourceAmount> _import;
+        [SerializeField] private List<ResourceAmount> _export;
+
+        public CountryId CountryId => _countryId;
+        public IReadOnlyList<ResourceAmount> Import => _import;
+        public IReadOnlyList<ResourceAmount> Export => _export;
 
         public TradeOfferData(CountryId countryId, List<ResourceAmount> import, List<ResourceAmount> export)
         {
-            CountryId = countryId;
-            Import = import.AsReadOnly();
-            Export = export.AsReadOnly();
+            _countryId = countryId;
+            _import = import;
+            _export = export;
         }
     }
 }

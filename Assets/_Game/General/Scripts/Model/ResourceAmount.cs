@@ -1,4 +1,6 @@
 using Newtonsoft.Json;
+using System;
+using UnityEngine;
 
 namespace Game.General
 {
@@ -7,16 +9,19 @@ namespace Game.General
     /// Used for Logic, UI arguments, Trade Offers, etc.
     /// </summary>
     [System.Serializable]
-    public readonly struct ResourceAmount
+    public struct ResourceAmount
     {
-        public ResourceType Type { get; }
-        public int Amount { get; }
+        [SerializeField] private ResourceType _type;
+        [SerializeField] private int _amount;
+
+        public ResourceType Type => _type;
+        public int Amount => _amount;
 
         [JsonConstructor]
         public ResourceAmount(ResourceType type, int amount)
         {
-            Type = type;
-            Amount = amount;
+            _type = type;
+            _amount = amount;
         }
     }
 }

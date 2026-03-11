@@ -31,6 +31,9 @@ namespace Game.General
         [Header("Initial Law Id")]
         [SerializeField] private string _initialLawId = "law_0001";
 
+        [Header("Initial Laws Count")]
+        [SerializeField] private int _initialLawsCount = 8;
+
         [Header("Next Laws Refresh Time")]
         [SerializeField] private float _initialLawsRefreshTime = 600f;
 
@@ -84,6 +87,11 @@ namespace Game.General
         public string GetInitialLawId()
         {
             return _initialLawId;
+        }
+
+        public int GetInitialLawsCount()
+        {
+            return _initialLawsCount;
         }
 
         public float GetLawsInitialRefreshTime()

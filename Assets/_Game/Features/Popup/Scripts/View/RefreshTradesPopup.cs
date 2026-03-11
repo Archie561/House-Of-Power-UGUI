@@ -46,9 +46,9 @@ namespace Game.Features.Popup
 
         private void UpdateTimerVisuals()
         {
-            var timeLeft = _targetTime - DateTime.Now;
+            var diff = _targetTime - DateTime.UtcNow;
 
-            if (timeLeft.TotalSeconds <= 0)
+            if (diff.TotalSeconds <= 0)
             {
                 _timerText.text = "00:00";
                 _isTimerRunning = false;
@@ -56,7 +56,12 @@ namespace Game.Features.Popup
                 return;
             }
 
-            _timerText.text = $"{timeLeft.Minutes:D2}:{timeLeft.Seconds:D2}";
+            int totalSecondsLeft = Mathf.CeilToInt((float)diff.TotalSeconds);
+
+            int m = totalSecondsLeft / 60;
+            int s = totalSecondsLeft % 60;
+
+            _timerText.text = $"{m:00}:{s:00}";
         }
     }
 }
