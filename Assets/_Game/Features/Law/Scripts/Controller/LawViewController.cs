@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Game.Features.Trade;
 using Game.General;
 using System.Collections.Generic;
 using TMPro;
@@ -21,7 +22,11 @@ namespace Game.Features.Law
         [Header("Refresh Info Panel")]
         [SerializeField] private TextMeshProUGUI _lawsCount;
         [SerializeField] private TextMeshProUGUI _timeToNextLawReplenish;
+        [SerializeField] private Image _timerIcon;
         [SerializeField] private Button _replenishLawButton;
+        [SerializeField] private Sprite _activeButtonSprite;
+        [SerializeField] private Sprite _unactiveButtonSprite;
+        [SerializeField] private Slider _lawsCountBar;
 
         [Header("Law Panel")]
         [SerializeField] private LawView _lawView;
@@ -49,10 +54,12 @@ namespace Game.Features.Law
             // Subscribe to events
             LawLogicController.Instance.OnPolicyAmountChanged += RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick += UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged += UpdateLawsCount;
+            LawLogicController.Instance.OnLawsCountChanged += RefreshRefreshInfoPanel;
 
             // Force Sync (Update UI to match current logic state immediately)
             InitializePoliciesProgress();
+            RefreshRefreshInfoPanel(LawLogicController.Instance.GetCurrentLawsCount());
+
             if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
             {
                 InitializeLaw(activeLaw);
@@ -64,26 +71,6 @@ namespace Game.Features.Law
             }
         }
 
-        private void UpdateTimer(int time)
-        {
-            _timeToNextLawReplenish.gameObject.SetActive(true);
-
-            if (time < 0) time = 0;
-
-            int m = time / 60;
-            int s = time % 60;
-            _timeToNextLawReplenish.text = $"{m:00}:{s:00}";
-        }
-
-        private void UpdateLawsCount(int count)
-        {
-            _lawsCount.text = $"{count}/8";
-            if (count == 8)
-            {
-                _timeToNextLawReplenish.gameObject.SetActive(false);
-            }
-        }
-
         private void OnDisable()
         {
             if (LawLogicController.Instance == null) return;
@@ -91,7 +78,7 @@ namespace Game.Features.Law
             // Unsubscribe from events
             LawLogicController.Instance.OnPolicyAmountChanged -= RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick -= UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged -= UpdateLawsCount;
+            LawLogicController.Instance.OnLawsCountChanged -= RefreshRefreshInfoPanel;
         }
 
         #endregion
@@ -122,6 +109,35 @@ namespace Game.Features.Law
                 var data = LawLogicController.Instance.GetPolicyLevelData(type);
                 progressView.UpdateView(data.level, data.currentXp, data.requiredXp);
             }
+        }
+
+        private void RefreshRefreshInfoPanel(int newLawsCount)
+        {
+            var maxLawsCount = LawLogicController.Instance.GetMaxLawsCount();
+            _lawsCount.text = $"{newLawsCount}/{maxLawsCount}";
+            var barValue = (float)newLawsCount / maxLawsCount;
+            _lawsCountBar.DOValue(barValue, 0.5f);
+
+            _replenishLawButton.image.sprite = newLawsCount < maxLawsCount ? _activeButtonSprite : _unactiveButtonSprite;
+        }
+
+        private void UpdateTimer(int time)
+        {
+            if (time <= 0)
+            {
+                _timerIcon.gameObject.SetActive(false);
+                _timeToNextLawReplenish.gameObject.SetActive(false);
+
+                return;
+            }
+
+            // hardcoded
+            _timerIcon.gameObject.SetActive(true);
+            _timeToNextLawReplenish.gameObject.SetActive(true);
+
+            int m = time / 60;
+            int s = time % 60;
+            _timeToNextLawReplenish.text = $"{m:00}:{s:00}";
         }
 
         private void InitializeLaw(LawData data)

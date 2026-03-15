@@ -49,14 +49,12 @@ namespace Game.Features.Law
         private void Start()
         {
             GameDataService.Instance.OnResourceChanged += HandleResourceChange;
-
             EnsureInitialized();
         }
 
         private void Update()
         {
             if (!_isInitialized) return;
-
             HandleTimerTick();
         }
 
@@ -93,7 +91,7 @@ namespace Game.Features.Law
             _nextReplenishTime = GameDataService.Instance.GetNextLawsRefreshTime();
             ProcessOfflineProgress();
             HandleTimerTick(); // To update the timer state immediately after processing offline progress
-            OnLawsCountChanged?.Invoke(_lawsLeftToExecute); // Notify UI about the initial count of available laws after processing offline progress
+            UpdateLawsCount(0); // To trigger the UI update for laws count based on the loaded state
         }
 
         #endregion
@@ -153,6 +151,18 @@ namespace Game.Features.Law
 
         #region Laws Logic
 
+        public int GetCurrentLawsCount()
+        {
+            EnsureInitialized();
+
+            return _lawsLeftToExecute;
+        }
+
+        /// <summary>
+        /// Returns the number of maximum available laws
+        /// </summary>
+        public int GetMaxLawsCount() => _lawConfig.MaxAvailableLaws;
+
         /// <summary>
         /// Returns the active law if the player has laws left available to execute. Otherwise, returns null.
         /// </summary>
@@ -182,25 +192,18 @@ namespace Game.Features.Law
 
             _availableLaws.Remove(law);
             GameDataService.Instance.SaveUsedLawId(law.Id);
-            
-            List<TransactionOperation> transaction = new List<TransactionOperation>();
-            var effects = accepted ? law.OnAcceptEffects : law.OnRejectEffects;
-            foreach (var effect in effects)
-            {
-                transaction.Add(new TransactionOperation(effect.Type, effect.Amount, forceApply: true));
-            }
 
+            var effects = accepted ? law.OnAcceptEffects : law.OnRejectEffects;
+            var transaction = effects.Select(e => new TransactionOperation(e.Type, e.Amount, forceApply: true)).ToList();
             GameDataService.Instance.TryApplyTransaction(transaction);
+
             if (_lawsLeftToExecute == _lawConfig.MaxAvailableLaws)
             {
                 _nextReplenishTime = DateTime.UtcNow.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
                 GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
             }
 
-            _lawsLeftToExecute--;
-            GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
-
-            OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
+            UpdateLawsCount(-1);
         }
 
         private LawData GetRandomLaw()
@@ -208,43 +211,37 @@ namespace Game.Features.Law
             return _availableLaws[UnityEngine.Random.Range(0, _availableLaws.Count)];
         }
 
+        private void UpdateLawsCount(int amount)
+        {
+            _lawsLeftToExecute = Mathf.Clamp(_lawsLeftToExecute + amount, 0, _lawConfig.MaxAvailableLaws);
+
+            GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
+            OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
+        }
+
         #endregion
 
         #region Timer Logic
 
+        // Processes the offline progress for law replenishment based on the last saved next replenish time and the current time.
         private void ProcessOfflineProgress()
         {
             if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
 
-            DateTime now = DateTime.UtcNow;
-
-            // Якщо час наступного відновлення вже в минулому
-            if (now >= _nextReplenishTime)
+            if (DateTime.UtcNow >= _nextReplenishTime)
             {
-                // Рахуємо, скільки ЧАСУ пройшло з моменту, коли мав з'явитися перший закон
-                TimeSpan passedTime = now - _nextReplenishTime;
+                TimeSpan passedTime = DateTime.UtcNow - _nextReplenishTime;
 
-                // +1 закон, бо _nextReplenishTime вже настав, плюс ті, що "накапали" після нього
+                // +1 becouse the _nextReplenishTime was already reached, plus the number of full replenish cycles that passed since then
                 int lawsToRecover = 1 + (int)(passedTime.TotalSeconds / _lawConfig.ReplenishCooldownSeconds);
+                UpdateLawsCount(lawsToRecover);
 
-                _lawsLeftToExecute += lawsToRecover;
-
-                // Перевіряємо, чи не вперлися в ліміт
-                if (_lawsLeftToExecute > _lawConfig.MaxAvailableLaws)
+                // If still hasn't fully replenished, setting the next replenish time based on how many laws was recovered
+                if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
                 {
-                    _lawsLeftToExecute = _lawConfig.MaxAvailableLaws;
-                }
-                else
-                {
-                    // Якщо відновилися не всі, ставимо новий час для наступного.
-                    // Використовуємо остачу від ділення, щоб не "вкрасти" у гравця зайві секунди
-                    double remainderSeconds = passedTime.TotalSeconds % _lawConfig.ReplenishCooldownSeconds;
-                    _nextReplenishTime = now.AddSeconds(_lawConfig.ReplenishCooldownSeconds - remainderSeconds);
+                    _nextReplenishTime = _nextReplenishTime.AddSeconds(lawsToRecover * _lawConfig.ReplenishCooldownSeconds);
                     GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
                 }
-
-                // Зберігаємо нові дані
-                GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
             }
         }
 
@@ -257,24 +254,13 @@ namespace Game.Features.Law
 
             if (diff.TotalSeconds <= 0)
             {
-                // Таймер дотикав! Даємо +1 закон
-                _lawsLeftToExecute++;
+                UpdateLawsCount(1);
 
-                if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws)
-                {
-                    _lawsLeftToExecute = _lawConfig.MaxAvailableLaws;
-                }
-                else
+                if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
                 {
                     _nextReplenishTime = _nextReplenishTime.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
                     GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
                 }
-
-                // Зберігаємо стан
-                GameDataService.Instance.UpdateAvailableLawsCount(_lawsLeftToExecute);
-
-                // Сповіщаємо UI
-                OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
             }
 
             // UI-optimization: Only trigger the timer tick event when the integer value changes
