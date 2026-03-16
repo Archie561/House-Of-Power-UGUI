@@ -151,6 +151,9 @@ namespace Game.Features.Law
 
         #region Laws Logic
 
+        /// <summary>
+        /// Gets the number of laws remaining to be executed.
+        /// </summary>
         public int GetCurrentLawsCount()
         {
             EnsureInitialized();
@@ -208,6 +211,12 @@ namespace Game.Features.Law
 
         private LawData GetRandomLaw()
         {
+            if (_availableLaws.Count == 0)
+            {
+                GameDataService.Instance.ResetUsedLawIds();
+                _availableLaws = _lawConfig.GetAllLaws().ToList();
+            }
+
             return _availableLaws[UnityEngine.Random.Range(0, _availableLaws.Count)];
         }
 

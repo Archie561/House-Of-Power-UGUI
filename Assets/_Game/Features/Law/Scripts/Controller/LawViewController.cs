@@ -1,6 +1,7 @@
 using DG.Tweening;
 using Game.Features.Trade;
 using Game.General;
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -27,14 +28,17 @@ namespace Game.Features.Law
         [SerializeField] private Sprite _activeButtonSprite;
         [SerializeField] private Sprite _unactiveButtonSprite;
         [SerializeField] private Slider _lawsCountBar;
+        [SerializeField] private float _countBarAnimationDuration = 0.5f;
 
         [Header("Law Panel")]
         [SerializeField] private LawView _lawView;
+        [SerializeField] private RectTransform _lawViewRect;
         [SerializeField] private Button _confirmLawButton;
         [SerializeField] private Button _declineLawButton;
         [SerializeField] private float _lawAnimationDuration = 0.5f;
 
         private Dictionary<ResourceType, PolicyProgressView> _spawnedPolicies = new Dictionary<ResourceType, PolicyProgressView>();
+        private int _maxLawsCount; // Cache max laws count for quick access
 
         #region Unity Lifecycle
 
@@ -54,20 +58,20 @@ namespace Game.Features.Law
             // Subscribe to events
             LawLogicController.Instance.OnPolicyAmountChanged += RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick += UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged += RefreshRefreshInfoPanel;
+            LawLogicController.Instance.OnLawsCountChanged += RefreshReplenishPanel;
 
             // Force Sync (Update UI to match current logic state immediately)
             InitializePoliciesProgress();
-            RefreshRefreshInfoPanel(LawLogicController.Instance.GetCurrentLawsCount());
+            RefreshReplenishPanel(LawLogicController.Instance.GetCurrentLawsCount());
 
             if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
             {
-                InitializeLaw(activeLaw);
-                _lawView.gameObject.SetActive(true); // Animation is not needed here to prevent playing it every time the player switches to the Law screen. It will only play when a new law is executed
+                ShowLaw(activeLaw, playAnimation: false);
             }
             else
             {
                 // show no law text
+                _lawView.gameObject.SetActive(false);
             }
         }
 
@@ -78,13 +82,14 @@ namespace Game.Features.Law
             // Unsubscribe from events
             LawLogicController.Instance.OnPolicyAmountChanged -= RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick -= UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged -= RefreshRefreshInfoPanel;
+            LawLogicController.Instance.OnLawsCountChanged -= RefreshReplenishPanel;
         }
 
         #endregion
 
         #region View Initialization & Updates
 
+        // Initializes static policy progress values
         private void InitializePoliciesProgress()
         {
             var policies = LawLogicController.Instance.GetPlayerPolicies();
@@ -102,6 +107,7 @@ namespace Game.Features.Law
             }
         }
 
+        // Updates the progress of a specific policy on change
         private void RefreshPolicyProgress(ResourceType type)
         {
             if (_spawnedPolicies.TryGetValue(type, out var progressView))
@@ -111,38 +117,62 @@ namespace Game.Features.Law
             }
         }
 
-        private void RefreshRefreshInfoPanel(int newLawsCount)
+        // Updates the replenish panel with the current laws count and timer
+        private void RefreshReplenishPanel(int newLawsCount)
         {
-            var maxLawsCount = LawLogicController.Instance.GetMaxLawsCount();
-            _lawsCount.text = $"{newLawsCount}/{maxLawsCount}";
-            var barValue = (float)newLawsCount / maxLawsCount;
-            _lawsCountBar.DOValue(barValue, 0.5f);
+            if (_maxLawsCount == 0) _maxLawsCount = LawLogicController.Instance.GetMaxLawsCount();
 
-            _replenishLawButton.image.sprite = newLawsCount < maxLawsCount ? _activeButtonSprite : _unactiveButtonSprite;
+            _lawsCount.text = $"{newLawsCount}/{_maxLawsCount}";
+            float barValue = (float)newLawsCount / _maxLawsCount;
+            _lawsCountBar.DOKill();
+            _lawsCountBar.DOValue(barValue, _countBarAnimationDuration);
+
+            _replenishLawButton.image.sprite = newLawsCount < _maxLawsCount ? _activeButtonSprite : _unactiveButtonSprite;
+
+            if (newLawsCount == 1)
+            {
+                if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
+                {
+                    ShowLaw(activeLaw);
+                }
+            }
         }
 
         private void UpdateTimer(int time)
         {
-            if (time <= 0)
-            {
-                _timerIcon.gameObject.SetActive(false);
-                _timeToNextLawReplenish.gameObject.SetActive(false);
+            bool shouldBeVisible = time > 0;
 
-                return;
+            if (_timeToNextLawReplenish.gameObject.activeSelf != shouldBeVisible)
+            {
+                _timeToNextLawReplenish.gameObject.SetActive(shouldBeVisible);
+                _timerIcon.gameObject.SetActive(shouldBeVisible);
             }
 
-            // hardcoded
-            _timerIcon.gameObject.SetActive(true);
-            _timeToNextLawReplenish.gameObject.SetActive(true);
+            if (!shouldBeVisible) return;
 
             int m = time / 60;
             int s = time % 60;
             _timeToNextLawReplenish.text = $"{m:00}:{s:00}";
         }
 
-        private void InitializeLaw(LawData data)
+        private void ShowLaw(LawData data, bool playAnimation = true)
         {
             _lawView.Initialize(data.Type, data.Id);
+            _lawView.gameObject.SetActive(true);
+
+            _confirmLawButton.interactable = true;
+            _declineLawButton.interactable = true;
+
+            _lawViewRect.anchoredPosition = Vector2.zero;
+
+            if (!playAnimation)
+            {
+                _lawViewRect.localScale = Vector3.one;
+                return;
+            }
+
+            _lawView.transform.DOKill(complete: true);
+            _lawView.transform.DOScale(Vector2.one, _lawAnimationDuration).From(Vector2.zero).SetEase(Ease.OutBack);
         }
 
         #endregion
@@ -159,34 +189,21 @@ namespace Game.Features.Law
 
             float targetX = accepted ? Screen.width : -Screen.width;
 
-            var rectTransform = _lawView.GetComponent<RectTransform>();
-
-            rectTransform.DOAnchorPosX(targetX, _lawAnimationDuration).SetEase(Ease.OutQuart).OnComplete(() =>
-            {
-                _lawView.gameObject.SetActive(false);
-
-                if (LawLogicController.Instance.TryGetActiveLaw(out var nextLaw))
+            _lawViewRect.DOAnchorPosX(targetX, _lawAnimationDuration)
+                .SetEase(Ease.OutQuart)
+                .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+                .OnComplete(() =>
                 {
-                    InitializeLaw(nextLaw);
-                    PlayLawAppearingAnimation();
-                }
-                else
-                {
-                    // Show "No More Laws" popup
-                }
-            });
-        }
-
-        private void PlayLawAppearingAnimation()
-        {
-            _lawView.gameObject.SetActive(true);
-            _lawView.transform.DOKill(complete: true);
-
-            _lawView.transform.DOScale(Vector2.one, _lawAnimationDuration).From(Vector2.zero).SetEase(Ease.OutBack).OnComplete(() =>
-            {
-                _confirmLawButton.interactable = true;
-                _declineLawButton.interactable = true;
-            });
+                    if (LawLogicController.Instance.TryGetActiveLaw(out var nextLaw))
+                    {
+                        ShowLaw(nextLaw);
+                    }
+                    else
+                    {
+                        // Show No Law Text
+                        _lawView.gameObject.SetActive(false);
+                    }
+                });
         }
 
         #endregion

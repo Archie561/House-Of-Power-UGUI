@@ -414,6 +414,15 @@ namespace Game.General
         }
 
         /// <summary>
+        /// Clears all used law identifiers from the player's data. Use only if player has completed all avaliable laws.
+        /// </summary>
+        public void ResetUsedLawIds()
+        {
+            _playerData.UsedLawIds.Clear();
+            _isDirty = true;
+        }
+
+        /// <summary>
         /// Gets the scheduled date and time for the next refresh of the laws data.
         /// </summary>
         public DateTime GetNextLawsRefreshTime()
