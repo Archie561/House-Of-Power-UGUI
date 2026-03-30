@@ -55,6 +55,22 @@ MonoBehaviour:
     m_Key: Popups.CancelLabel
     m_Metadata:
       m_Items: []
+  - m_Id: 33310390132703232
+    m_Key: Popups.ReplenishLawsHeader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 33310543350628352
+    m_Key: Popups.ReplenishLawsDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36176925251633152
+    m_Key: Popups.UpgradePolicyHeader
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36177095938834432
+    m_Key: Popups.UpgradePolicyDescription
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

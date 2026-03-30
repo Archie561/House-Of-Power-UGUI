@@ -63,6 +63,25 @@ MonoBehaviour:
     m_Localized: Cancel
     m_Metadata:
       m_Items: []
+  - m_Id: 33310390132703232
+    m_Localized: New laws update
+    m_Metadata:
+      m_Items: []
+  - m_Id: 33310543350628352
+    m_Localized: Wait to update the list of laws or buy the update instantly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36176925251633152
+    m_Localized: Upgrade policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36177095938834432
+    m_Localized: 'Policy: {0}
+
+      Upgrade to the next level?'
+    m_Metadata:
+      m_Items:
+      - rid: 8845453836125208655
   references:
     version: 2
     RefIds:
@@ -73,3 +92,4 @@ MonoBehaviour:
         m_SharedEntries:
         - id: 2335349702656
         - id: 2901485196181504
+        - id: 36177095938834432

@@ -14,9 +14,8 @@ namespace Game.Features.Popup
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private PopupCostButton _skipButton;
 
-        private DateTime _targetTime;
+        private RefreshTradesPopupData _popupData;
         private bool _isTimerRunning;
-        private Action _onTimerFinishedCallback;
 
         private void Update()
         {
@@ -35,24 +34,22 @@ namespace Game.Features.Popup
                 return;
             }
 
-            _targetTime = data.TargetTime;
-            _onTimerFinishedCallback = data.OnTimerVisuallyFinished;
+            _popupData = data;
+
             _isTimerRunning = true;
-
-            _skipButton.Initialize(ResourceType.Gems, data.SkipCost, data.CanAfford, data.OnSkipClick);
-
+            _skipButton.Initialize(ResourceType.Gems, _popupData.SkipCost, _popupData.CanAfford, _popupData.OnSkipClick);
             UpdateTimerVisuals();
         }
 
         private void UpdateTimerVisuals()
         {
-            var diff = _targetTime - DateTime.UtcNow;
+            var diff = _popupData.TargetTime - DateTime.UtcNow;
 
             if (diff.TotalSeconds <= 0)
             {
                 _timerText.text = "00:00";
                 _isTimerRunning = false;
-                _onTimerFinishedCallback?.Invoke();
+                _popupData.OnTimerVisuallyFinished?.Invoke();
                 return;
             }
 

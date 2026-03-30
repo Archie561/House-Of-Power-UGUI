@@ -139,6 +139,36 @@ namespace Game.Features.Law
             return (currentLevel, totalXp, requiredXp);
         }
 
+        public int GetPolicyXpUpgradeCost(ResourceType type)
+        {
+            if (!type.IsPolicyValue()) return 0;
+
+            var levelData = GetPolicyLevelData(type);
+            var xpToNextLevel = levelData.requiredXp - levelData.currentXp;
+
+            if (xpToNextLevel <= 0) return 0;
+
+            // most efficient way to round up to the nearest 10 and calculate the cost based on that
+            int packsNeeded = (xpToNextLevel + 9) / 10;
+            return packsNeeded * _lawConfig.CostPer10Xp;
+        }
+
+        public bool TryUpgradePolicy(ResourceType type)
+        {
+            if (!type.IsPolicyValue()) return false;
+
+            var transaction = TransactionOperation.Spend(ResourceType.Gems, GetPolicyXpUpgradeCost(type));
+            if (GameDataService.Instance.TryApplyTransaction(transaction))
+            {
+                var levelData = GetPolicyLevelData(type);
+                var xpToNextLevel = levelData.requiredXp - levelData.currentXp;
+                GameDataService.Instance.TryApplyTransaction(TransactionOperation.Add(type, xpToNextLevel));
+                return true;
+            }
+
+            return false;
+        }
+
         private void HandleResourceChange(ResourceChangeData data)
         {
             if (data.Type.IsPolicyValue())
@@ -157,7 +187,6 @@ namespace Game.Features.Law
         public int GetCurrentLawsCount()
         {
             EnsureInitialized();
-
             return _lawsLeftToExecute;
         }
 
@@ -165,6 +194,37 @@ namespace Game.Features.Law
         /// Returns the number of maximum available laws
         /// </summary>
         public int GetMaxLawsCount() => _lawConfig.MaxAvailableLaws;
+
+        public DateTime GetTotalLawsReplenishTime()
+        {
+            EnsureInitialized();
+
+            int lawsToReplenish = _lawConfig.MaxAvailableLaws - _lawsLeftToExecute;
+            return _nextReplenishTime.AddSeconds((lawsToReplenish - 1) * _lawConfig.ReplenishCooldownSeconds);
+        }
+
+        public int GetTotalLawsReplenishCost()
+        {
+            EnsureInitialized();
+
+            int lawsToReplenish = _lawConfig.MaxAvailableLaws - _lawsLeftToExecute;
+            return lawsToReplenish * _lawConfig.LawReplenishCost;
+        }
+
+        public void TryReplenishLaws()
+        {
+            EnsureInitialized();
+
+            if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
+
+            var transaction = TransactionOperation.Spend(ResourceType.Gems, GetTotalLawsReplenishCost());
+            if (GameDataService.Instance.TryApplyTransaction(transaction))
+            {
+                UpdateLawsCount(_lawConfig.MaxAvailableLaws);
+                _nextReplenishTime = DateTime.MinValue;
+                GameDataService.Instance.SetNextLawsRefreshTime(_nextReplenishTime);
+            }
+        }
 
         /// <summary>
         /// Returns the active law if the player has laws left available to execute. Otherwise, returns null.
@@ -207,6 +267,14 @@ namespace Game.Features.Law
             }
 
             UpdateLawsCount(-1);
+        }
+
+        /// <summary>
+        /// Checks if the player has enough resource to pay the cost.
+        /// </summary>
+        public bool CanAfford(ResourceType type, int cost)
+        {
+            return GameDataService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
         }
 
         private LawData GetRandomLaw()

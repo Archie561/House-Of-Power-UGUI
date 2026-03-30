@@ -22,6 +22,15 @@ MonoBehaviour:
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
+  _localizedDescription:
+    m_TableReference:
+      m_TableCollectionName: GUID:01492e71ab09309489fb98a56a9982d4
+    m_TableEntryReference:
+      m_KeyId: 37592907258036224
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   _icon: {fileID: 2619156217251398772, guid: 3a0ab89dccfaade4baa2d5c271628bdb, type: 3}
   references:
     version: 2

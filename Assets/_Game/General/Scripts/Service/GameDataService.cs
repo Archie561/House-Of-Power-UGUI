@@ -134,8 +134,8 @@ namespace Game.General
             Dictionary<ResourceType, int> resources = _gameConfig.GetInitialResources();
             Dictionary<ResourceType, int> storageLevels = _gameConfig.GetInitialStorageLevels();
 
-            DateTime nextTradeRefresh = DateTime.Now.AddSeconds(_gameConfig.GetTradeInitialRefreshTime());
-            DateTime nextLawRefresh = DateTime.Now.AddSeconds(_gameConfig.GetLawsInitialRefreshTime());
+            DateTime nextTradeRefresh = DateTime.UtcNow.AddSeconds(_gameConfig.GetTradeInitialRefreshTime());
+            DateTime nextLawRefresh = DateTime.UtcNow.AddSeconds(_gameConfig.GetLawsInitialRefreshTime());
 
             // Ensure all enums exist (safety check)
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))

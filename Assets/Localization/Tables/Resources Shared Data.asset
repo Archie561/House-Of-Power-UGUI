@@ -67,6 +67,30 @@ MonoBehaviour:
     m_Key: Resources.Welfare
     m_Metadata:
       m_Items: []
+  - m_Id: 37592907258036224
+    m_Key: Resources.HealthcareDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593005576716288
+    m_Key: Resources.InfrastructureDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593083045511168
+    m_Key: Resources.ScienceDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593267984957440
+    m_Key: Resources.EcologyDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593327862841344
+    m_Key: Resources.EducationDescription
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593375522717696
+    m_Key: Resources.WelfareDescription
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

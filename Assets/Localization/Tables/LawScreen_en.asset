@@ -106,6 +106,10 @@ MonoBehaviour:
     m_Localized: Decline
     m_Metadata:
       m_Items: []
+  - m_Id: 26459338234126336
+    m_Localized: 'Laws:'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

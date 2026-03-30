@@ -106,7 +106,6 @@ namespace Game.Features.Trade
         public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
             EnsureInitialized();
-
             return _activeOffersCache.AsReadOnly();
         }
 

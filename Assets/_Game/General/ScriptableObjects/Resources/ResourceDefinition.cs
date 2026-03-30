@@ -15,11 +15,15 @@ namespace Game.General
         [Tooltip("Localized name of the resource displayed in UI.")]
         [SerializeField] private LocalizedString _localizedName;
 
+        [Tooltip("Localized description of the resource displayed in UI. Optional.")]
+        [SerializeField] private LocalizedString _localizedDescription;
+
         [Tooltip("Icon representing the resource.")]
         [SerializeField] private Sprite _icon;
 
         public ResourceType Type => _type;
         public LocalizedString LocalizedName => _localizedName;
+        public LocalizedString LocalizedDescription => _localizedDescription;
         public Sprite Icon => _icon;
     }
 }

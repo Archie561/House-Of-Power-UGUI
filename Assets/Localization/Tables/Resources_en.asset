@@ -70,6 +70,34 @@ MonoBehaviour:
     m_Localized: Welfare
     m_Metadata:
       m_Items: []
+  - m_Id: 37592907258036224
+    m_Localized: Hospitals, number of curable diseases, quality of doctors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593005576716288
+    m_Localized: the condition of roads and communications, the availability of schools,
+      universities, institutions and other amenities
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593083045511168
+    m_Localized: level of science, technological development, cybersecurity, digitalization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593267984957440
+    m_Localized: environmental cleanliness, waste control, prevention of environmental
+      disasters
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593327862841344
+    m_Localized: quality of education of citizens, number of schools, universities,
+      colleges and educational institutions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37593375522717696
+    m_Localized: standard of living of citizens, legitimacy of government, general
+      happiness in life
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

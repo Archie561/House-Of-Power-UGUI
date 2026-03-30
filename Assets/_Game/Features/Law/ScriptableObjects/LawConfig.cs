@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game.Features.Law
@@ -10,6 +11,8 @@ namespace Game.Features.Law
         [SerializeField] private List<LawData> _allLaws = new List<LawData>();
         [SerializeField] private int _maxAvailableLaws = 8;
         [SerializeField] private int _replenishCooldownSeconds = 60;
+        [SerializeField] private int _lawReplenishCost = 2;
+        [SerializeField] private int _costPer10Xp = 1;
 
         [Header("Policy Leveling")]
         [SerializeField] private int _baseRequiredXpForLevel = 100;
@@ -18,6 +21,8 @@ namespace Game.Features.Law
         public IReadOnlyList<LawData> GetAllLaws() => _allLaws;
         public int MaxAvailableLaws => _maxAvailableLaws;
         public int ReplenishCooldownSeconds => _replenishCooldownSeconds;
+        public int LawReplenishCost => _lawReplenishCost;
+        public int CostPer10Xp => _costPer10Xp;
         public int BaseRequiredXpForLevel => _baseRequiredXpForLevel;
         public int XpIncreasePerLevel => _xpIncreasePerLevel;
 

@@ -16,7 +16,7 @@ MonoBehaviour:
   - Type: 0
     Amount: 1000
   - Type: 1
-    Amount: 50
+    Amount: 50000
   - Type: 10
     Amount: 50
   - Type: 11
@@ -41,6 +41,7 @@ MonoBehaviour:
     Amount: 0
   - Type: 25
     Amount: 0
+  _isFirstGameSession: 1
   _initialStorageLevels:
   - Type: 10
     Amount: 1
@@ -107,5 +108,7 @@ MonoBehaviour:
       Amount: 15
     - Type: 11
       Amount: 15
-  _initialRefreshTime: 300
-  _isFirstGameSession: 1
+  _initialTradeRefreshTime: 600
+  _initialLawId: law_0001
+  _initialLawsCount: 8
+  _initialLawsRefreshTime: 600

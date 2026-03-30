@@ -1,5 +1,5 @@
 using DG.Tweening;
-using Game.Features.Trade;
+using Game.Features.Popup;
 using Game.General;
 using System;
 using System.Collections.Generic;
@@ -19,6 +19,7 @@ namespace Game.Features.Law
         [Header("Policies Panel")]
         [SerializeField] private PolicyProgressView _policyProgressPrefab;
         [SerializeField] private Transform _policiesContainer;
+        [SerializeField] private Button _policiesPanelButton;
 
         [Header("Refresh Info Panel")]
         [SerializeField] private TextMeshProUGUI _lawsCount;
@@ -33,11 +34,14 @@ namespace Game.Features.Law
         [Header("Law Panel")]
         [SerializeField] private LawView _lawView;
         [SerializeField] private RectTransform _lawViewRect;
+        [SerializeField] private TextMeshProUGUI _noLawsText;
         [SerializeField] private Button _confirmLawButton;
         [SerializeField] private Button _declineLawButton;
         [SerializeField] private float _lawAnimationDuration = 0.5f;
 
         private Dictionary<ResourceType, PolicyProgressView> _spawnedPolicies = new Dictionary<ResourceType, PolicyProgressView>();
+        private ReplenishLawsPopupData _currentPopupData; // Cache current popup data to update it when laws count changes
+        private LawPoliciesPopupData _currentPoliciesPopupData;
         private int _maxLawsCount; // Cache max laws count for quick access
 
         #region Unity Lifecycle
@@ -46,9 +50,13 @@ namespace Game.Features.Law
         {
             _confirmLawButton.onClick.RemoveAllListeners();
             _declineLawButton.onClick.RemoveAllListeners();
+            _replenishLawButton.onClick.RemoveAllListeners();
+            _policiesPanelButton.onClick.RemoveAllListeners();
 
             _confirmLawButton.onClick.AddListener(() => OnLawExecuted(true));
             _declineLawButton.onClick.AddListener(() => OnLawExecuted(false));
+            _replenishLawButton.onClick.AddListener(OnReplenishClicked);
+            _policiesPanelButton.onClick.AddListener(OnPoliciesPanelClicked);
         }
 
         private void OnEnable()
@@ -58,21 +66,10 @@ namespace Game.Features.Law
             // Subscribe to events
             LawLogicController.Instance.OnPolicyAmountChanged += RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick += UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged += RefreshReplenishPanel;
+            LawLogicController.Instance.OnLawsCountChanged += RefreshLawsCount;
 
-            // Force Sync (Update UI to match current logic state immediately)
-            InitializePoliciesProgress();
-            RefreshReplenishPanel(LawLogicController.Instance.GetCurrentLawsCount());
-
-            if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
-            {
-                ShowLaw(activeLaw, playAnimation: false);
-            }
-            else
-            {
-                // show no law text
-                _lawView.gameObject.SetActive(false);
-            }
+            RestoreViewState();
+            
         }
 
         private void OnDisable()
@@ -82,12 +79,29 @@ namespace Game.Features.Law
             // Unsubscribe from events
             LawLogicController.Instance.OnPolicyAmountChanged -= RefreshPolicyProgress;
             LawLogicController.Instance.OnTimerTick -= UpdateTimer;
-            LawLogicController.Instance.OnLawsCountChanged -= RefreshReplenishPanel;
+            LawLogicController.Instance.OnLawsCountChanged -= RefreshLawsCount;
         }
 
         #endregion
 
         #region View Initialization & Updates
+
+        // Restores the view to match the current state of the logic when enabled
+        private void RestoreViewState()
+        {
+            InitializePoliciesProgress();
+            RefreshLawsCount(LawLogicController.Instance.GetCurrentLawsCount());
+
+            if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
+            {
+                ShowLaw(activeLaw, playAnimation: false);
+            }
+            else
+            {
+                _lawView.gameObject.SetActive(false);
+                _noLawsText.gameObject.SetActive(true);
+            }
+        }
 
         // Initializes static policy progress values
         private void InitializePoliciesProgress()
@@ -117,27 +131,40 @@ namespace Game.Features.Law
             }
         }
 
-        // Updates the replenish panel with the current laws count and timer
-        private void RefreshReplenishPanel(int newLawsCount)
+        // Updates the replenish panel on laws count change
+        private void RefreshLawsCount(int newLawsCount)
         {
             if (_maxLawsCount == 0) _maxLawsCount = LawLogicController.Instance.GetMaxLawsCount();
 
             _lawsCount.text = $"{newLawsCount}/{_maxLawsCount}";
             float barValue = (float)newLawsCount / _maxLawsCount;
+
             _lawsCountBar.DOKill();
             _lawsCountBar.DOValue(barValue, _countBarAnimationDuration);
 
             _replenishLawButton.image.sprite = newLawsCount < _maxLawsCount ? _activeButtonSprite : _unactiveButtonSprite;
 
-            if (newLawsCount == 1)
+            // Update the popup data if it's open and the laws count has changed (e.g., replenished while popup was open)
+            if (_currentPopupData != null && newLawsCount < _maxLawsCount)
             {
-                if (LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
-                {
-                    ShowLaw(activeLaw);
-                }
+                var totalCost = LawLogicController.Instance.GetTotalLawsReplenishCost();
+                var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, totalCost);
+
+                _currentPopupData.UpdateCost(totalCost, canAfford);
+            }
+
+            // If law replenished while the _lawView is not active, show the new law immediately
+            if (!_lawView.gameObject.activeSelf && LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
+                ShowLaw(activeLaw);
+
+            // If we have reached max laws, ensure the timer is hidden
+            if (newLawsCount >= _maxLawsCount)
+            {
+                UpdateTimer(0);
             }
         }
 
+        // Updates the timer display for the next law replenishment
         private void UpdateTimer(int time)
         {
             bool shouldBeVisible = time > 0;
@@ -155,40 +182,57 @@ namespace Game.Features.Law
             _timeToNextLawReplenish.text = $"{m:00}:{s:00}";
         }
 
+        // Displays a new law with an optional animation
         private void ShowLaw(LawData data, bool playAnimation = true)
         {
             _lawView.Initialize(data.Type, data.Id);
-            _lawView.gameObject.SetActive(true);
 
-            _confirmLawButton.interactable = true;
-            _declineLawButton.interactable = true;
+            if (!_lawView.gameObject.activeSelf) _lawView.gameObject.SetActive(true);
+            if (_noLawsText.gameObject.activeSelf) _noLawsText.gameObject.SetActive(false);
 
+            _lawViewRect.DOKill(complete: true);
             _lawViewRect.anchoredPosition = Vector2.zero;
 
             if (!playAnimation)
             {
                 _lawViewRect.localScale = Vector3.one;
+                _confirmLawButton.interactable = true;
+                _declineLawButton.interactable = true;
+
                 return;
             }
 
-            _lawView.transform.DOKill(complete: true);
-            _lawView.transform.DOScale(Vector2.one, _lawAnimationDuration).From(Vector2.zero).SetEase(Ease.OutBack);
+            _lawViewRect.DOScale(Vector2.one, _lawAnimationDuration)
+                .From(Vector2.zero)
+                .SetEase(Ease.OutBack)
+                .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+                .OnComplete(() =>
+                {
+                    _confirmLawButton.interactable = true;
+                    _declineLawButton.interactable = true;
+                });
         }
 
         #endregion
 
         #region User Interaction Handlers
 
+        // Notifies the logic module whether a law has been accepted or rejected and handles the UI behavior
         private void OnLawExecuted(bool accepted)
         {
             _confirmLawButton.interactable = false;
             _declineLawButton.interactable = false;
-            _lawView.transform.DOKill(complete: true);
 
             LawLogicController.Instance.ExecuteActiveLaw(accepted);
 
-            float targetX = accepted ? Screen.width : -Screen.width;
+            RectTransform parentRect = (RectTransform)_lawViewRect.parent;
+            // Беремо половину ширини батька + половину ширини самого бланка, 
+            // щоб він гарантовано сховався за край (додаємо множник 1.2f для невеликого запасу)
+            float offScreenOffset = (parentRect.rect.width / 2f + _lawViewRect.rect.width / 2f) * 1.2f;
 
+            float targetX = accepted ? offScreenOffset : -offScreenOffset;
+
+            _lawViewRect.DOKill(complete: true);
             _lawViewRect.DOAnchorPosX(targetX, _lawAnimationDuration)
                 .SetEase(Ease.OutQuart)
                 .SetLink(gameObject, LinkBehaviour.KillOnDisable)
@@ -200,10 +244,86 @@ namespace Game.Features.Law
                     }
                     else
                     {
-                        // Show No Law Text
                         _lawView.gameObject.SetActive(false);
+                        _noLawsText.gameObject.SetActive(true);
                     }
                 });
+        }
+
+        private void OnReplenishClicked()
+        {
+            if (LawLogicController.Instance.GetCurrentLawsCount() >= _maxLawsCount) return;
+
+            var targetTime = LawLogicController.Instance.GetTotalLawsReplenishTime();
+            var totalCost = LawLogicController.Instance.GetTotalLawsReplenishCost();
+            var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, totalCost);
+
+            _currentPopupData = new ReplenishLawsPopupData(
+                targetTime,
+                totalCost,
+                canAfford,
+                onConfirmClick: () =>
+                {
+                    LawLogicController.Instance.TryReplenishLaws();
+                    PopupController.Instance.CloseCurrentPopup();
+                    _currentPopupData = null;
+                },
+                onTimerVisuallyFinished: () =>
+                {
+                    PopupController.Instance.CloseCurrentPopup();
+                    _currentPopupData = null;
+                });
+
+            PopupController.Instance.Show<ReplenishLawsPopup>(popup => popup.Initialize(_currentPopupData));
+        }
+
+        private void OnPoliciesPanelClicked()
+        {
+            _currentPoliciesPopupData = new LawPoliciesPopupData(GeneratePoliciesList());
+            PopupController.Instance.Show<LawPoliciesPopup>(popup => popup.Initialize(_currentPoliciesPopupData));
+        }
+
+        private List<DetailedPolicyProgressData> GeneratePoliciesList()
+        {
+            var policyDatas = new List<DetailedPolicyProgressData>();
+            var policies = LawLogicController.Instance.GetPlayerPolicies();
+
+            foreach (var policy in policies)
+            {
+                var levelData = LawLogicController.Instance.GetPolicyLevelData(policy.Type);
+                var itemData = new DetailedPolicyProgressData(
+                    policy.Type,
+                    levelData.level,
+                    levelData.currentXp,
+                    levelData.requiredXp,
+                    onBuyClick: () => OpenUpgradePolicyPopup(policy.Type)
+                );
+
+                policyDatas.Add(itemData);
+            }
+
+            return policyDatas;
+        }
+
+        private void OpenUpgradePolicyPopup(ResourceType type)
+        {
+            var gemPrice = LawLogicController.Instance.GetPolicyXpUpgradeCost(type);
+            var data = new UpgradePolicyPopupData(
+                type,
+                gemPrice,
+                LawLogicController.Instance.CanAfford(ResourceType.Gems, gemPrice),
+                onBuyClick: () =>
+                {
+                    LawLogicController.Instance.TryUpgradePolicy(type);
+                    PopupController.Instance.CloseCurrentPopup();
+
+                    if (_currentPoliciesPopupData != null)
+                    {
+                        _currentPoliciesPopupData.UpdatePolicies(GeneratePoliciesList());
+                    }
+                });
+
+            PopupController.Instance.Show<UpgradePolicyPopup>(popup => popup.Initialize(data));
         }
 
         #endregion

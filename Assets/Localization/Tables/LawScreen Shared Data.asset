@@ -79,6 +79,10 @@ MonoBehaviour:
     m_Key: LawScreen.DeclineLaw
     m_Metadata:
       m_Items: []
+  - m_Id: 26459338234126336
+    m_Key: LawsCountLabel
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

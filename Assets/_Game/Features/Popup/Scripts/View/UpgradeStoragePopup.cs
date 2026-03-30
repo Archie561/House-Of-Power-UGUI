@@ -25,6 +25,12 @@ namespace Game.Features.Popup
         /// </summary>
         public void Initialize(UpgradeStoragePopupData popupData)
         {
+            if (popupData == null)
+            {
+                Debug.LogError("[UpgradeStoragePopup] Data is missing!");
+                return;
+            }
+
             // Localization
             var definition = _resourceLibrary.GetDef(popupData.StorageType);
             if (definition != null)

@@ -22,7 +22,7 @@ namespace Game.Features.Popup
         [SerializeField] private List<BasePopup> _allPopups;
 
         private Dictionary<Type, BasePopup> _popupRegistry;
-        private BasePopup _currentPopup;
+        private Stack<BasePopup> _activePopups = new Stack<BasePopup>();
         private bool _isBusy;
 
         #endregion
@@ -45,13 +45,13 @@ namespace Game.Features.Popup
         private void Update()
         {
             // Handle Android back button
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            {
-                if (_currentPopup != null && !_isBusy && _currentPopup.IsCloseOnOverlayAllowed)
-                {
-                    CloseCurrentPopup();
-                }
-            }
+            // if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            // {
+            //     if (_currentPopup != null && !_isBusy && _currentPopup.IsCloseOnOverlayAllowed)
+            //     {
+            //         CloseCurrentPopup();
+            //     }
+            // }
         }
 
         #endregion
@@ -59,13 +59,13 @@ namespace Game.Features.Popup
         #region Public API
 
         /// <summary>
-        /// Shows a popup of the specified type.
+        /// Shows a popup of the specified type. Stacks on top of existing ones.
         /// </summary>
         /// <typeparam name="T">The type of popup to show.</typeparam>
         /// <param name="setupAction">Action to configure the popup data before opening.</param>
         public void Show<T>(Action<T> setupAction = null) where T : BasePopup
         {
-            if (_isBusy || _currentPopup != null)
+            if (_isBusy)
             {
                 Debug.LogWarning($"[PopupController] System is busy. Cannot show {typeof(T).Name}");
                 return;
@@ -76,9 +76,14 @@ namespace Game.Features.Popup
             {
                 var popup = popupBase as T;
 
-                // Lock the controller immediately
+                // Захист від подвійного відкриття одного і того ж попапу підряд
+                if (_activePopups.Count > 0 && _activePopups.Peek() == popup)
+                {
+                    Debug.LogWarning($"[PopupController] Popup {type.Name} is already on top.");
+                    return;
+                }
+
                 _isBusy = true;
-                _currentPopup = popup;
 
                 try
                 {
@@ -87,13 +92,21 @@ namespace Game.Features.Popup
                 catch (Exception e)
                 {
                     Debug.LogError($"[PopupController] Error initializing {type.Name}: {e}");
-                    // Reset state if initialization fails
                     _isBusy = false;
-                    _currentPopup = null;
                     return;
                 }
 
-                FadeOverlay(show: true);
+                // Додаємо в стек
+                _activePopups.Push(popup);
+
+                _overlayCanvasGroup.transform.SetAsLastSibling();
+
+                popup.transform.SetAsLastSibling();
+
+                if (_activePopups.Count == 1)
+                {
+                    FadeOverlay(show: true);
+                }
 
                 popup.Open(onOpened: () =>
                 {
@@ -111,17 +124,30 @@ namespace Game.Features.Popup
         /// </summary>
         public void CloseCurrentPopup()
         {
-            if (_currentPopup == null) return;
+            if (_activePopups.Count == 0 || _isBusy) return;
 
             _isBusy = true;
 
-            _currentPopup.Close(onClosed: () =>
+            var popupToClose = _activePopups.Pop();
+
+            popupToClose.Close(onClosed: () =>
             {
-                _currentPopup = null;
-                FadeOverlay(show: false, onComplete: () =>
+                // Якщо після закриття стек пустий - вимикаємо затемнення
+                if (_activePopups.Count == 0)
                 {
+                    FadeOverlay(show: false, onComplete: () =>
+                    {
+                        _isBusy = false;
+                    });
+                }
+                else
+                {
+                    // Якщо під ним ще є попапи, переміщуємо затемнення під новий верхній попап
+                    var newTopPopup = _activePopups.Peek();
+                    _overlayCanvasGroup.transform.SetAsLastSibling();
+                    newTopPopup.transform.SetAsLastSibling();
                     _isBusy = false;
-                });
+                }
             });
         }
 
@@ -157,9 +183,10 @@ namespace Game.Features.Popup
 
         private void OnOverlayClicked()
         {
-            if (_isBusy || _currentPopup == null) return;
+            if (_isBusy || _activePopups.Count == 0) return;
 
-            if (_currentPopup.IsCloseOnOverlayAllowed)
+            var topPopup = _activePopups.Peek();
+            if (topPopup.IsCloseOnOverlayAllowed)
             {
                 CloseCurrentPopup();
             }
