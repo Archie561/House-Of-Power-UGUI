@@ -1,0 +1,5 @@
+# Navigation control
+This module is responsible for navigating through game screens via the nav-bar. The controller (**NavigationController**) changes the active game screen to the one corresponding to the nav-bar button that was pressed. The module also contains a class for adapting the nav-bar to different screen sizes (**NavBarBackgroundAdjuster**). In the future, it is planned to add a function to change the game screen background when switching.
+
+# Управління навігацією
+Цей модуль відповідає за навігацію по ігровим екранам через nav-bar. Контролер (**NavigationController**) змінює активний ігровий екран на відповідний кнопці nav-bar-у, яку було натиснуто. Також, модуль містить клас для адаптації nav-bar-у для екранів різних розмірів (**NavBarBackgroundAdjuster**). У майбутньому планується додати функцію заміни бекграунду ігрового екрану при переключенні.
