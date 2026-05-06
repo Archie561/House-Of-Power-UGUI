@@ -8,16 +8,17 @@ namespace Game.Features.Popup
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class BasePopup : MonoBehaviour
     {
-        protected const float ANIMATION_DURATION = 0.3f;
-
-        private CanvasGroup _canvasGroup;
-
         /// <summary>
         /// Determines if clicking the overlay (or back button) closes this popup.
         /// </summary>
         public bool IsCloseOnOverlayAllowed { get; protected set; } = true;
-        public Action OnOpened { get; set; }
-        public Action OnClosed { get; set; }
+        /// <summary>
+        /// Event invoked after the popup has fully closed. This is invoked after the closing animation completes and the popup is deactivated.
+         // </summary>
+        public Action OnPopupClosed { get; set; }
+
+        protected const float ANIMATION_DURATION = 0.3f;
+        private CanvasGroup _canvasGroup;
 
         protected virtual void Awake() => _canvasGroup = GetComponent<CanvasGroup>();
 
@@ -35,7 +36,6 @@ namespace Game.Features.Popup
             await transform.DOScale(Vector3.one, ANIMATION_DURATION).From(Vector3.zero).SetEase(Ease.OutBack).AsyncWaitForCompletion();
 
             _canvasGroup.blocksRaycasts = true;
-            OnOpened?.Invoke();
         }
 
         /// <summary>
@@ -50,12 +50,10 @@ namespace Game.Features.Popup
 
             await transform.DOScale(Vector3.zero, ANIMATION_DURATION).SetEase(Ease.InBack).AsyncWaitForCompletion();
 
-            gameObject.SetActive(false);
-            OnClosed?.Invoke();
+            OnPopupClosed?.Invoke();
 
-            // Clear subscribers to prevent memory leaks
-            OnOpened = null;
-            OnClosed = null; 
+            OnPopupClosed = null; // Clear subscribers to prevent memory leaks
+            gameObject.SetActive(false);
         }
     }
 }

@@ -16,14 +16,9 @@ namespace Game.Features.Popup
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private PopupCostButton _confirmButton;
 
-        private ReplenishLawsPopupData _popupData;
+        private ReplenishLawsPopupData _data;
         private bool _isTimerRunning;
-
-        private void Update()
-        {
-            if (!_isTimerRunning) return;
-            UpdateTimerVisuals();
-        }
+        private int _lastDisplayedSecond = -1;
 
         /// <summary>
         /// Initializes the popup with cost and timer data.
@@ -31,44 +26,41 @@ namespace Game.Features.Popup
         /// <param name="data"></param>
         public void Initialize(ReplenishLawsPopupData data)
         {
-            if (data == null)
-            {
-                Debug.LogError("[ReplenishLawsPopup] Data is missing!");
-                return;
-            }
-
-            if (_popupData != null) _popupData.OnDataUpdated -= RefreshVisuals;
-
-            _popupData = data;
-            _popupData.OnDataUpdated += RefreshVisuals;
+            _data = data;
 
             _isTimerRunning = true;
-            RefreshVisuals();
+            _confirmButton.Initialize(_data.CostType, _data.CostAmount, _data.CanAfford, _data.OnConfirmClick);
         }
 
-        private void RefreshVisuals()
-        {
-            _confirmButton.Initialize(ResourceType.Gems, _popupData.TotalCost, _popupData.CanAfford, _popupData.OnConfirmClick);
-        }
+        private void Update() => UpdateTimer();
 
-        private void UpdateTimerVisuals()
+        private void UpdateTimer()
         {
-            var diff = _popupData.TargetTime - DateTime.UtcNow;
+            if (!_isTimerRunning) return;
+            var diff = _data.TargetTime - DateTime.UtcNow;
 
             if (diff.TotalSeconds <= 0)
             {
                 _timerText.text = "00:00";
                 _isTimerRunning = false;
-                _popupData.OnTimerVisuallyFinished?.Invoke();
                 return;
             }
 
             int totalSecondsLeft = Mathf.CeilToInt((float)diff.TotalSeconds);
 
-            int m = totalSecondsLeft / 60;
-            int s = totalSecondsLeft % 60;
+            // Update the timer text only if the displayed second has changed to minimize UI updates
+            if (totalSecondsLeft != _lastDisplayedSecond)
+            {
+                _lastDisplayedSecond = totalSecondsLeft;
+                int m = totalSecondsLeft / 60;
+                int s = totalSecondsLeft % 60;
+                _timerText.text = $"{m:00}:{s:00}";
+            }
+        }
 
-            _timerText.text = $"{m:00}:{s:00}";
+        public void UpdateCostVisuals(int costAmount, bool canAfford)
+        {
+            _confirmButton.Initialize(_data.CostType, costAmount, canAfford, _data.OnConfirmClick);
         }
     }
 }

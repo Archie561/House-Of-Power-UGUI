@@ -1,39 +1,26 @@
-
 using System;
+using Game.General;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Observable Model for the Replenish Laws Popup.
-    /// Holds the data and uses the Observer pattern (OnDataUpdated event) 
-    /// to notify subscribers (Presenters/Containers) when data changes, 
-    /// keeping the data logic decoupled from the UI.
+    /// Data container for the Replenish Laws Popup.
     /// </summary>
     public class ReplenishLawsPopupData
     {
-        public DateTime TargetTime { get; }
-        public Action OnConfirmClick { get; }
-        public Action OnTimerVisuallyFinished { get; }
-
-        public int TotalCost { get; private set; }
+        public DateTime TargetTime { get; private set; }
+        public ResourceType CostType {get; private set; }
+        public int CostAmount { get; private set; }
         public bool CanAfford { get; private set; }
+        public Action OnConfirmClick { get; private set;}
 
-        public Action OnDataUpdated { get; set; }
-
-        public ReplenishLawsPopupData(DateTime targetTime, int totalCost, bool canAfford, Action onConfirmClick, Action onTimerVisuallyFinished)
+        public ReplenishLawsPopupData(DateTime targetTime, ResourceType costType, int costAmount, bool canAfford, Action onConfirmClick)
         {
             TargetTime = targetTime;
-            TotalCost = totalCost;
+            CostType = costType;
+            CostAmount = costAmount;
             CanAfford = canAfford;
             OnConfirmClick = onConfirmClick;
-            OnTimerVisuallyFinished = onTimerVisuallyFinished;
-        }
-
-        public void UpdateCost(int newCost, bool canAfford)
-        {
-            TotalCost = newCost;
-            CanAfford = canAfford;
-            OnDataUpdated?.Invoke();
         }
     }
 }

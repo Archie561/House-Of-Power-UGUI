@@ -35,9 +35,9 @@ namespace Game.Features.Law
         }
 
         /// <summary>
-        /// Updates dynamic data (amount and progress bar) without re-initializing the whole view.
+        /// Updates dynamic data without re-initializing the whole view.
         /// </summary>
-        public void UpdateView(int level, int amount, int maxValue)
+        public void UpdateVisuals(int level, int amount, int maxValue)
         {
             _levelText.text = $"Lv. {level}";
 

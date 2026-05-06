@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Passive View for the Accept Offer Popup. Displays data and forwards results of user interactions via callbacks.
+    /// View for the Accept Offer Popup. Displays data and forwards results of user interactions via callbacks.
     /// </summary>
     public class AcceptOfferPopup : BasePopup
     {
@@ -27,17 +27,10 @@ namespace Game.Features.Popup
         [SerializeField, Range(0f, 1f)] private float _disableAlpha = 0.6f;
 
         /// <summary>
-        /// Configures the popup with the specific trade offer data.
+        /// Configures the popup with the specific data.
         /// </summary>
-        /// <param name="popupData">Data containing the offer, costs, and callbacks.</param>
         public void Initialize(AcceptOfferPopupData popupData)
         {
-            if (popupData?.OfferData == null)
-            {
-                Debug.LogError("[AcceptOfferPopup] Data is missing!");
-                return;
-            }
-
             // Localization
             var definition = _countryLibrary.GetDef(popupData.OfferData.CountryId);
             if (definition != null)

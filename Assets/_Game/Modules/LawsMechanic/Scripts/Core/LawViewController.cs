@@ -39,8 +39,6 @@ namespace Game.Features.Law
         [SerializeField] private float _lawAnimationDuration = 0.5f;
 
         private Dictionary<ResourceType, PolicyProgressView> _spawnedPolicies = new Dictionary<ResourceType, PolicyProgressView>();
-        private ReplenishLawsPopupData _currentReplenishPopupData; // Cache current popup data to update it when laws count changes
-        private LawPoliciesPopupData _currentPoliciesPopupData;
         private int _maxLawsCount; // Cache max laws count for quick access
 
         #region Unity Lifecycle
@@ -128,7 +126,7 @@ namespace Game.Features.Law
             if (_spawnedPolicies.TryGetValue(type, out var progressView))
             {
                 var data = LawLogicController.Instance.GetPolicyLevelData(type);
-                progressView.UpdateView(data.level, data.currentXp, data.requiredXp);
+                progressView.UpdateVisuals(data.level, data.currentXp, data.requiredXp);
             }
         }
 
@@ -145,15 +143,6 @@ namespace Game.Features.Law
             _lawsCountBar.DOValue(barValue, _countBarAnimationDuration);
 
             _replenishLawButton.image.sprite = newLawsCount < _maxLawsCount ? _activeButtonSprite : _unactiveButtonSprite;
-
-            // Update the popup data if it's open and the laws count has changed (e.g., replenished while popup was open)
-            if (_currentReplenishPopupData != null && newLawsCount < _maxLawsCount)
-            {
-                var totalCost = LawLogicController.Instance.GetTotalLawsReplenishCost();
-                var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, totalCost);
-
-                _currentReplenishPopupData.UpdateCost(totalCost, canAfford);
-            }
 
             // If law replenished while the _lawView is not active, show the new law immediately
             if (!_lawView.gameObject.activeSelf && LawLogicController.Instance.TryGetActiveLaw(out var activeLaw))
@@ -259,37 +248,48 @@ namespace Game.Features.Law
             if (LawLogicController.Instance.GetCurrentLawsCount() >= _maxLawsCount) return;
 
             var targetTime = LawLogicController.Instance.GetTotalLawsReplenishTime();
-            var totalCost = LawLogicController.Instance.GetTotalLawsReplenishCost();
-            var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, totalCost);
+            var costAmount = LawLogicController.Instance.GetTotalLawsReplenishCost();
+            var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, costAmount);
 
-            _currentReplenishPopupData = new ReplenishLawsPopupData(
+            var data = new ReplenishLawsPopupData(
                 targetTime,
-                totalCost,
+                costType: ResourceType.Gems,
+                costAmount,
                 canAfford,
                 onConfirmClick: () =>
                 {
                     LawLogicController.Instance.TryReplenishLaws();
                     PopupController.Instance.CloseCurrentPopup();
-                    _currentReplenishPopupData = null;
-                },
-                onTimerVisuallyFinished: () =>
-                {
-                    PopupController.Instance.CloseCurrentPopup();
-                    _currentReplenishPopupData = null;
                 });
 
-            PopupController.Instance.Show<ReplenishLawsPopup>(popup => popup.Initialize(_currentReplenishPopupData));
+            PopupController.Instance.Show<ReplenishLawsPopup>(popup =>
+            {
+                popup.Initialize(data);
+                
+                // Subscribe to laws count changes to update the popup visuals if the player replenishes laws through other means while the popup is open
+                void OnLawsCountChanged(int newCount)
+                {
+                    if (newCount >= _maxLawsCount)
+                    {
+                        PopupController.Instance.CloseCurrentPopup();
+                    }
+                    else
+                    {
+                        var newCostAmount = LawLogicController.Instance.GetTotalLawsReplenishCost();
+                        var newCanAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, newCostAmount);
+                        popup.UpdateCostVisuals(newCostAmount, newCanAfford);
+                    }
+                }
+
+                LawLogicController.Instance.OnLawsCountChanged += OnLawsCountChanged;
+
+                // Unsubscribe when the popup is closed to prevent memory leaks
+                popup.OnPopupClosed += () => LawLogicController.Instance.OnLawsCountChanged -= OnLawsCountChanged;
+            });
         }
 
         // Handles the logic for when the policies panel is clicked, showing the policies popup with the current policies data
         private void OnPoliciesPanelClicked()
-        {
-            _currentPoliciesPopupData = new LawPoliciesPopupData(GeneratePoliciesList());
-            PopupController.Instance.Show<LawPoliciesPopup>(popup => popup.Initialize(_currentPoliciesPopupData));
-        }
-
-        // Generates a list of policy progress data for all player policies, used to populate the policies popup
-        private List<DetailedPolicyProgressData> GeneratePoliciesList()
         {
             var policyDatas = new List<DetailedPolicyProgressData>();
             var policies = LawLogicController.Instance.GetPlayerPolicies();
@@ -308,7 +308,22 @@ namespace Game.Features.Law
                 policyDatas.Add(itemData);
             }
 
-            return policyDatas;
+            var popupData = new LawPoliciesPopupData(policyDatas);
+
+            PopupController.Instance.Show<LawPoliciesPopup>(popup =>
+            {
+                popup.Initialize(popupData);
+
+                void OnPolicyAmountChanged(ResourceType type)
+                {
+                    var policyData = LawLogicController.Instance.GetPolicyLevelData(type);
+                    popup.UpdateVisuals(type, policyData.level, policyData.currentXp, policyData.requiredXp);
+                }
+
+                LawLogicController.Instance.OnPolicyAmountChanged += OnPolicyAmountChanged;
+
+                popup.OnPopupClosed += () => LawLogicController.Instance.OnPolicyAmountChanged -= OnPolicyAmountChanged;
+            });
         }
 
         // Opens the upgrade policy popup for a specific policy type, allowing the player to spend resources to upgrade it
@@ -323,11 +338,6 @@ namespace Game.Features.Law
                 {
                     LawLogicController.Instance.TryUpgradePolicy(type);
                     PopupController.Instance.CloseCurrentPopup();
-
-                    if (_currentPoliciesPopupData != null)
-                    {
-                        _currentPoliciesPopupData.UpdatePolicies(GeneratePoliciesList());
-                    }
                 });
 
             PopupController.Instance.Show<UpgradePolicyPopup>(popup => popup.Initialize(data));

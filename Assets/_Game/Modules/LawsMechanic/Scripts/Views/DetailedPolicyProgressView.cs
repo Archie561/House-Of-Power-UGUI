@@ -27,7 +27,8 @@ namespace Game.Features.Law
         public void Initialize(DetailedPolicyProgressData data)
         {
             _progressView.Initialize(data.Type);
-            _progressView.UpdateView(data.Level, data.CurrentXp, data.RequiredXp);
+            _progressView.UpdateVisuals(data.Level, data.CurrentXp, data.RequiredXp);
+            _xpText.text = $"{data.CurrentXp}/{data.RequiredXp}";
 
             var definition = _library.GetDef(data.Type);
             if (definition != null)
@@ -35,10 +36,17 @@ namespace Game.Features.Law
                 _descriptionTextLocalizer.StringReference = definition.LocalizedDescription;
             }
 
-            _xpText.text = $"{data.CurrentXp}/{data.RequiredXp}";
-
             _buyButton.onClick.RemoveAllListeners();
             _buyButton.onClick.AddListener(() => data.OnBuyClick?.Invoke());
+        }
+
+        /// <summary>
+        /// Updates the dynamic data without re-initializing the whole view.
+        /// </summary>
+        public void UpdateVisuals(int level, int currentXp, int requiredXp)
+        {
+            _progressView.UpdateVisuals(level, currentXp, requiredXp);
+            _xpText.text = $"{currentXp}/{requiredXp}";
         }
     }
 }

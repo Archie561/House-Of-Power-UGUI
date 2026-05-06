@@ -4,7 +4,7 @@ using Game.General;
 namespace Game.Features.Law
 {
     /// <summary>
-    /// ViewModel class to hold detailed progress information for a specific policy, used in the UI to display progress and handle buy actions.
+    /// Data container to hold detailed progress information for a specific policy, used in the UI to display progress and handle buy actions.
     /// </summary>
     public class DetailedPolicyProgressData
     {

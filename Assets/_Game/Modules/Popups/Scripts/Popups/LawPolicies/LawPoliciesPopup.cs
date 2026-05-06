@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Game.Features.Law;
+using Game.General;
 using UnityEngine;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Container View / Presenter for the Law Policies Popup.
-    /// Acts as a "Smart Component" that listens to the Observable Model.
+    /// View for the Law Policies Popup. Displays data and forwards results of user interactions via callbacks.
     /// </summary>
     public class LawPoliciesPopup : BasePopup
     {
@@ -14,49 +14,39 @@ namespace Game.Features.Popup
         [SerializeField] private Transform _contentContainer;
         [SerializeField] private DetailedPolicyProgressView _policyProgressPrefab;
 
-        private LawPoliciesPopupData _popupData;
-        private List<DetailedPolicyProgressView> _spawnedPolicies = new List<DetailedPolicyProgressView>();
+        private Dictionary<ResourceType, DetailedPolicyProgressView> _spawnedPolicies = new();
 
         /// <summary>
-        /// Initializes the popup with policies data.
+        /// Configures the popup with the specific data.
         /// </summary>
-        /// <param name="data"></param>
         public void Initialize(LawPoliciesPopupData data)
         {
-            if (_popupData != null) _popupData.OnDataUpdated -= RefreshList;
-
-            _popupData = data;
-
-            // Subscribe to data updates to refresh the list when policies change
-            _popupData.OnDataUpdated += RefreshList;
-
-            RefreshList();
-        }
-
-        private void OnDisable()
-        {
-            if (_popupData != null)
+            foreach (var policy in data.Policies)
             {
-                _popupData.OnDataUpdated -= RefreshList;
-            }
-        }
-
-        private void RefreshList()
-        {
-            // Spawn all the policies if we haven't already (we keep them around and just update them for performance)
-            if (_spawnedPolicies.Count == 0)
-            {
-                foreach (var policy in _popupData.Policies)
+                // If we haven't spawned a view for this policy type yet, do it now.
+                if (!_spawnedPolicies.ContainsKey(policy.Type))
                 {
                     var newItem = Instantiate(_policyProgressPrefab, _contentContainer);
-                    _spawnedPolicies.Add(newItem);
-                }
-            }
 
-            // Update all the policies with the latest data
-            for (int i = 0; i < _popupData.Policies.Count; i++)
+                    newItem.Initialize(policy);
+
+                    _spawnedPolicies.Add(policy.Type, newItem);
+                }
+
+                // Update the visuals for this policy's view with the current data.
+                UpdateVisuals(policy.Type, policy.Level, policy.CurrentXp, policy.RequiredXp);
+            }
+        }
+
+        public void UpdateVisuals(ResourceType type, int level, int currentXp, int requiredXp)
+        {
+            if (_spawnedPolicies.TryGetValue(type, out var view))
             {
-                _spawnedPolicies[i].Initialize(_popupData.Policies[i]);
+                view.UpdateVisuals(level, currentXp, requiredXp);
+            }
+            else
+            {
+                Debug.LogWarning($"[LawPoliciesPopup] Trying to update visuals for policy type {type} but no view is spawned for it.");
             }
         }
     }
