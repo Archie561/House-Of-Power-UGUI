@@ -1,10 +1,10 @@
-using System;
 using Game.General;
+using System;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data transfer object (Model) for the Upgrade Policy Popup.
+    /// Data container for the Upgrade Policy Popup. Contains all the necessary initial data.
     /// </summary>
     public class UpgradePolicyPopupData
     {

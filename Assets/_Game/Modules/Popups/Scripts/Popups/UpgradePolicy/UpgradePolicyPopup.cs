@@ -1,4 +1,3 @@
-using System;
 using Game.General;
 using UnityEngine;
 using UnityEngine.Localization.Components;
@@ -6,7 +5,8 @@ using UnityEngine.Localization.Components;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Passive View for the Upgrade Policy Popup. Displays data and forwards results of user interactions via callbacks.
+    /// View for the Upgrade Policy Popup. Displays information about the policy type, upgrade cost, affordability,and a button to confirm the purchase.
+    /// Forwards results of user interactions via callbacks.
     /// </summary>
     public class UpgradePolicyPopup : BasePopup
     {
@@ -20,7 +20,6 @@ namespace Game.Features.Popup
         /// <summary>
         /// Initializes the popup with cost and description data.
         /// </summary>
-        /// <param name="data"></param>
         public void Initialize(UpgradePolicyPopupData data)
         {
             if (data == null)

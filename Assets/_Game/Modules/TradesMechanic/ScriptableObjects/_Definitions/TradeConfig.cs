@@ -8,7 +8,7 @@ namespace Game.Features.Trade
     {
         [Header("General")]
         [SerializeField] private float _refreshTradesCooldown = 600f;
-        [SerializeField] private int _skipRefreshGemCost = 5;
+        [SerializeField] private int _skipRefreshGemCostPerMinute = 2;
         [SerializeField] private int _offersToGenerate = 8;
 
         [Header("Modules")]
@@ -16,7 +16,7 @@ namespace Game.Features.Trade
         [SerializeField] private OfferGenerationSettings _generationSettings;
 
         public float RefreshTradesCooldown => _refreshTradesCooldown;
-        public int SkipRefreshGemCost => _skipRefreshGemCost;
+        public int SkipRefreshGemCostPerMinute => _skipRefreshGemCostPerMinute;
         public int OffersToGenerate => _offersToGenerate;
         public StorageUpgradeSettings StorageSettings => _storageSettings;
         public OfferGenerationSettings GenerationSettings => _generationSettings;

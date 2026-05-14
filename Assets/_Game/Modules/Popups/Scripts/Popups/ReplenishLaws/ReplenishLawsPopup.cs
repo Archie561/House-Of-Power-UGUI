@@ -1,14 +1,15 @@
 
 using System;
-using Game.General;
 using TMPro;
 using UnityEngine;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Container View / Presenter for the Replenish Laws Popup.
-    /// Acts as a "Smart Component" that listens to the Observable Model.
+    /// View for the Replenish Laws Popup. Displays a timer until the next free replenish and a button to buy a full replenish.
+    /// Forwards results of user interactions via callbacks. Contains a method for updating the cost and affordability state of the confirm button.
+    /// It is recommended to subscribe to the relevant events in the popup's setup method (via PopupController)
+    /// to keep the button's state updated without reinitializing the entire popup.
     /// </summary>
     public class ReplenishLawsPopup : BasePopup
     {
@@ -16,28 +17,33 @@ namespace Game.Features.Popup
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private PopupCostButton _confirmButton;
 
-        private ReplenishLawsPopupData _data;
+        private ReplenishLawsPopupData _popupData;
         private bool _isTimerRunning;
         private int _lastDisplayedSecond = -1;
 
         /// <summary>
-        /// Initializes the popup with cost and timer data.
+        /// Initializes the popup with timer data and skip cost.
         /// </summary>
-        /// <param name="data"></param>
         public void Initialize(ReplenishLawsPopupData data)
         {
-            _data = data;
+            _popupData = data;
 
             _isTimerRunning = true;
-            _confirmButton.Initialize(_data.CostType, _data.CostAmount, _data.CanAfford, _data.OnConfirmClick);
+            _confirmButton.Initialize(_popupData.CostType, _popupData.CostAmount, _popupData.CanAfford, _popupData.OnConfirmClick);
         }
 
-        private void Update() => UpdateTimer();
+        /// <summary>
+        /// Updates the cost button's visuals, allowing to change the cost and affordability state without reinitializing the entire popup.
+        /// </summary>
+        public void UpdateCostVisuals(int costAmount, bool canAfford)
+        {
+            _confirmButton.Initialize(_popupData.CostType, costAmount, canAfford, _popupData.OnConfirmClick);
+        }
 
         private void UpdateTimer()
         {
             if (!_isTimerRunning) return;
-            var diff = _data.TargetTime - DateTime.UtcNow;
+            var diff = _popupData.TargetTime - DateTime.UtcNow;
 
             if (diff.TotalSeconds <= 0)
             {
@@ -58,9 +64,6 @@ namespace Game.Features.Popup
             }
         }
 
-        public void UpdateCostVisuals(int costAmount, bool canAfford)
-        {
-            _confirmButton.Initialize(_data.CostType, costAmount, canAfford, _data.OnConfirmClick);
-        }
+        private void Update() => UpdateTimer();
     }
 }

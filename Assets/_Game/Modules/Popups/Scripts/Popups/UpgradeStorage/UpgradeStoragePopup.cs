@@ -6,7 +6,8 @@ using UnityEngine.Localization.Components;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Passive View for the Upgrade Storage Popup. Displays data and forwards results of user interactions via callbacks.
+    /// View for the Upgrade Storage Popup. Displays information about current and upgraded storage capacity, cost of the upgrade in resources and gems,
+    /// affordability and buttons to confirm the purchase. Forwards results of user interactions via callbacks.
     /// </summary>
     public class UpgradeStoragePopup : BasePopup
     {
@@ -21,7 +22,7 @@ namespace Game.Features.Popup
         [SerializeField] private ResourceLibrary _resourceLibrary;
 
         /// <summary>
-        /// Sets up the popup with current and next capacity values and cost options.
+        /// Initializes the popup with current and next capacity values and cost options.
         /// </summary>
         public void Initialize(UpgradeStoragePopupData popupData)
         {

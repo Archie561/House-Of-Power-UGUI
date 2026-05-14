@@ -4,7 +4,7 @@ using System;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data container for the Accept Offer Popup.
+    /// Data container for the Accept Offer Popup. Contains all the necessary initial data.
     /// </summary>
     public class AcceptOfferPopupData
     {

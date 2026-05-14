@@ -48,10 +48,6 @@ namespace Game.Features.Popup
             // Setup Interaction
             _button.onClick.RemoveAllListeners();
 
-            // Keep the button interactable to prevent Unity's default disabled color override,
-            // we handle visual disabling via CanvasGroup alpha.
-            _button.interactable = true;
-
             if (canAfford)
             {
                 _button.onClick.AddListener(() => onClickCallback?.Invoke());

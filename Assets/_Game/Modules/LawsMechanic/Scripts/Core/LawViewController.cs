@@ -252,15 +252,16 @@ namespace Game.Features.Law
             var canAfford = LawLogicController.Instance.CanAfford(ResourceType.Gems, costAmount);
 
             var data = new ReplenishLawsPopupData(
-                targetTime,
+                targetTime: targetTime,
                 costType: ResourceType.Gems,
-                costAmount,
-                canAfford,
+                costAmount: costAmount,
+                canAfford: canAfford,
                 onConfirmClick: () =>
                 {
                     LawLogicController.Instance.TryReplenishLaws();
                     PopupController.Instance.CloseCurrentPopup();
-                });
+                }
+            );
 
             PopupController.Instance.Show<ReplenishLawsPopup>(popup =>
             {
@@ -317,7 +318,7 @@ namespace Game.Features.Law
                 void OnPolicyAmountChanged(ResourceType type)
                 {
                     var policyData = LawLogicController.Instance.GetPolicyLevelData(type);
-                    popup.UpdateVisuals(type, policyData.level, policyData.currentXp, policyData.requiredXp);
+                    popup.UpdatePolicyVisuals(type, policyData.level, policyData.currentXp, policyData.requiredXp);
                 }
 
                 LawLogicController.Instance.OnPolicyAmountChanged += OnPolicyAmountChanged;

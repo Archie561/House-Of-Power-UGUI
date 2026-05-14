@@ -1,10 +1,10 @@
-using System;
 using Game.General;
+using System;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data container for the Replenish Laws Popup.
+    /// Data container for the Replenish Laws Popup. Contains all the necessary initial data.
     /// </summary>
     public class ReplenishLawsPopupData
     {

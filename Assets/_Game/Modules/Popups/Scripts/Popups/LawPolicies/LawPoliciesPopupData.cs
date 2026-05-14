@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
 using Game.Features.Law;
+using System.Collections.Generic;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data container for the Law Policies Popup.
+    /// Data container for the Law Policies Popup. Contains all the necessary initial data.
     /// </summary>
     public class LawPoliciesPopupData
     {

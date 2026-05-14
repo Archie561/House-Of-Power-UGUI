@@ -1,12 +1,15 @@
-using System.Collections.Generic;
-using Game.Features.Law;
 using Game.General;
+using Game.Features.Law;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// View for the Law Policies Popup. Displays data and forwards results of user interactions via callbacks.
+    /// View for the Law Policies Popup. Displays information about all policies, their levels and progress.
+    /// Forwards results of user interactions via callbacks. Contains a method for updating the visuals of a single policy.
+    /// It is recommended to subscribe to the policy change event in the popup's setup method (via PopupController)
+    /// to keep the visuals updated without reinitializing the entire popup.
     /// </summary>
     public class LawPoliciesPopup : BasePopup
     {
@@ -17,7 +20,7 @@ namespace Game.Features.Popup
         private Dictionary<ResourceType, DetailedPolicyProgressView> _spawnedPolicies = new();
 
         /// <summary>
-        /// Configures the popup with the specific data.
+        /// Configures the popup with all the policies that should be displayed, their current levels and progress.
         /// </summary>
         public void Initialize(LawPoliciesPopupData data)
         {
@@ -34,11 +37,14 @@ namespace Game.Features.Popup
                 }
 
                 // Update the visuals for this policy's view with the current data.
-                UpdateVisuals(policy.Type, policy.Level, policy.CurrentXp, policy.RequiredXp);
+                UpdatePolicyVisuals(policy.Type, policy.Level, policy.CurrentXp, policy.RequiredXp);
             }
         }
 
-        public void UpdateVisuals(ResourceType type, int level, int currentXp, int requiredXp)
+        /// <summary>
+        /// Updates the visuals of a specific policy type without reinitializing the entire popup.
+        /// </summary>
+        public void UpdatePolicyVisuals(ResourceType type, int level, int currentXp, int requiredXp)
         {
             if (_spawnedPolicies.TryGetValue(type, out var view))
             {

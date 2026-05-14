@@ -1,25 +1,26 @@
+using Game.General;
 using System;
 
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data transfer object (Model) for the Refresh Trades Popup.
+    /// Data container for the Refresh Trades Popup. Contains all the necessary initial data.
     /// </summary>
     public class RefreshTradesPopupData
     {
         public DateTime TargetTime { get; }
-        public int SkipCost { get; }
+        public ResourceType CostType {get; }
+        public int CostAmount { get; }
         public bool CanAfford { get; }
-        public Action OnSkipClick { get; }
-        public Action OnTimerVisuallyFinished { get; }
+        public Action OnConfirmClick { get; }
 
-        public RefreshTradesPopupData(DateTime targetTime, int skipCost, bool canAfford, Action onSkipClick, Action onTimerVisuallyFinished)
+        public RefreshTradesPopupData(DateTime targetTime, ResourceType costType, int costAmount, bool canAfford, Action onConfirmClick)
         {
             TargetTime = targetTime;
-            SkipCost = skipCost;
+            CostType = costType;
+            CostAmount = costAmount;
             CanAfford = canAfford;
-            OnSkipClick = onSkipClick;
-            OnTimerVisuallyFinished = onTimerVisuallyFinished;
+            OnConfirmClick = onConfirmClick;
         }
     }
 }

@@ -59,7 +59,7 @@ namespace Game.Features.Popup
         /// </summary>
         /// <typeparam name="T">The type of popup to show.</typeparam>
         /// <param name="setupAction">Action to configure the popup data before opening.</param>
-        public async void Show<T>(Action<T> setupAction = null) where T : BasePopup
+        public async void Show<T>(Action<T> setupAction) where T : BasePopup
         {
             if (_isBusy)
             {

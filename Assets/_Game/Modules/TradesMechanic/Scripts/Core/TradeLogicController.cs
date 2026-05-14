@@ -20,6 +20,7 @@ namespace Game.Features.Trade
         private List<TradeOfferData> _activeOffersCache = new List<TradeOfferData>();
         private DateTime _nextRefreshTime;
         private bool _isReadyToRefresh;
+        private int _skipRefreshGemCost; // Cached cost for skipping refresh, calculated based on remaining time and config. Updated on timer tick.
         private int _lastIntTimer = -1; // For UI events optimization
         private bool _isInitialized = false;
 
@@ -30,6 +31,7 @@ namespace Game.Features.Trade
         // --- Events ---
         public event Action<int> OnTimerTick;
         public event Action<bool> OnRefreshStatusChanged;
+        public event Action<int> OnSkipCostChanged;
         public event Action<IReadOnlyList<TradeOfferData>> OnOffersListUpdated;
         public event Action<ResourceType> OnTradeGoodChanged;
 
@@ -132,7 +134,7 @@ namespace Game.Features.Trade
             }
             else
             {
-                var cost = TransactionOperation.Spend(ResourceType.Gems, _config.SkipRefreshGemCost);
+                var cost = TransactionOperation.Spend(ResourceType.Gems, _skipRefreshGemCost);
                 if (!TransactionService.Instance.TryApplyTransaction(cost)) return false;
             }
 
@@ -219,7 +221,7 @@ namespace Game.Features.Trade
 
         public DateTime GetNextRefreshTime() => PlayerDataService.Instance.GetNextTradeRefreshTime();
 
-        public int GetSkipRefreshGemCost() => _config.SkipRefreshGemCost;
+        public int GetSkipRefreshGemCost() => _skipRefreshGemCost;
 
         // Handles the countdown timer logic and triggers events on tick.
         private void HandleTimerTick()
@@ -228,6 +230,15 @@ namespace Game.Features.Trade
 
             // Calculating the difference between the target refresh time and the current time to determine how much time is left until the next refresh.
             TimeSpan diff = _nextRefreshTime - DateTime.UtcNow;
+
+            // =================================================Calculate the skip refresh gem cost based on the remaining time TEMPORARY
+            var newSkipCost = Mathf.CeilToInt((float)diff.TotalMinutes * _config.SkipRefreshGemCostPerMinute);
+            if (newSkipCost != _skipRefreshGemCost)
+            {
+                _skipRefreshGemCost = newSkipCost;
+                OnSkipCostChanged?.Invoke(_skipRefreshGemCost);
+            }
+            //============================================================================================================================
 
             if (diff.TotalSeconds <= 0)
             {

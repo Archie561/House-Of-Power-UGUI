@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// View for the Accept Offer Popup. Displays data and forwards results of user interactions via callbacks.
+    /// View for the Accept Offer Popup. Displays trade details, availability information and forwards results of user interactions via callbacks.
     /// </summary>
     public class AcceptOfferPopup : BasePopup
     {
@@ -27,7 +27,7 @@ namespace Game.Features.Popup
         [SerializeField, Range(0f, 1f)] private float _disableAlpha = 0.6f;
 
         /// <summary>
-        /// Configures the popup with the specific data.
+        /// Initializes the popup with offer details, confirm and cancel buttons.
         /// </summary>
         public void Initialize(AcceptOfferPopupData popupData)
         {

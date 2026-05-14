@@ -4,7 +4,7 @@ using System;
 namespace Game.Features.Popup
 {
     /// <summary>
-    /// Data transfer object (Model) for the Upgrade Storage Popup.
+    /// Data container for the Upgrade Storage Popup. Contains all the necessary initial data.
     /// </summary>
     public class UpgradeStoragePopupData
     {

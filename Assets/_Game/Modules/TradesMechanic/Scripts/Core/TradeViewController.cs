@@ -199,29 +199,39 @@ namespace Game.Features.Trade
             var skipCost = TradeLogicController.Instance.GetSkipRefreshGemCost();
             var canAfford = TradeLogicController.Instance.CanAfford(ResourceType.Gems, skipCost);
 
-            var popupData = new RefreshTradesPopupData
-            (
-                targetTime,
-                skipCost,
-                canAfford,
-                onSkipClick: () =>
+            var popupData = new RefreshTradesPopupData(
+                targetTime: targetTime,
+                costType: ResourceType.Gems,
+                costAmount: skipCost,
+                canAfford: canAfford,
+                onConfirmClick: () =>
                 {
                     TradeLogicController.Instance.TryRefreshOffers(isPremium: true);
                     PopupController.Instance.CloseCurrentPopup();
-                },
-                onTimerVisuallyFinished: () =>
-                {
-                    // Auto-close popup when timer hits 00:00 while popup is open
-                    if (TradeLogicController.Instance.IsReadyToRefresh())
-                    {
-                        PopupController.Instance.CloseCurrentPopup();
-                    }
                 }
             );
 
             PopupController.Instance.Show<RefreshTradesPopup>(popup =>
             {
                 popup.Initialize(popupData);
+
+                void OnSkipCostChanged(int newCost)
+                {
+                    if (newCost <= 0)
+                    {
+                        PopupController.Instance.CloseCurrentPopup();
+                    }
+                    else
+                    {
+                        var canAfford = TradeLogicController.Instance.CanAfford(ResourceType.Gems, newCost);
+                        popup.UpdateCostVisuals(newCost, canAfford);
+                    }
+                }
+
+                TradeLogicController.Instance.OnSkipCostChanged += OnSkipCostChanged;
+
+                // Unsubscribe from the event when the popup is closed to prevent memory leaks
+                popup.OnPopupClosed += ()  => TradeLogicController.Instance.OnSkipCostChanged -= OnSkipCostChanged;
             });
         }
 
