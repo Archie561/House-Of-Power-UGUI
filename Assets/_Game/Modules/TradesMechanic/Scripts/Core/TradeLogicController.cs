@@ -2,6 +2,7 @@ using Game.General;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace Game.Features.Trade
 {
@@ -18,22 +19,29 @@ namespace Game.Features.Trade
 
         // --- State ---
         private List<TradeOfferData> _activeOffersCache = new List<TradeOfferData>();
-        private DateTime _nextRefreshTime;
-        private bool _isReadyToRefresh;
-        private int _skipRefreshGemCost; // Cached cost for skipping refresh, calculated based on remaining time and config. Updated on timer tick.
-        private int _lastIntTimer = -1; // For UI events optimization
-        private bool _isInitialized = false;
+        private static readonly ResourceType[] _tradeGoodTypes = Enum.GetValues(typeof(ResourceType))
+            .Cast<ResourceType>()
+            .Where(t => t.IsTradeGood())
+            .ToArray();
 
         // --- Dependencies ---
         private TradeOfferGenerator _offerGenerator;
         private StorageUpgradeCalculator _storageUpgradeCalculator;
+        private TradeCooldownTimer _cooldownTimer;
 
         // --- Events ---
-        public event Action<int> OnTimerTick;
-        public event Action<bool> OnRefreshStatusChanged;
-        public event Action<int> OnSkipCostChanged;
+        public event Action OnDataReady;
+        public event Action<int> OnTimerSecondsTick;
+        public event Action<bool> OnFreeTradesRefreshStatusChanged;
+        public event Action<int> OnPremiumTradesRefreshCostChanged;
         public event Action<IReadOnlyList<TradeOfferData>> OnOffersListUpdated;
         public event Action<ResourceType> OnTradeGoodChanged;
+
+        // --- Properties ---
+        public bool IsDataReady { get; private set; }
+        public bool IsFreeTradesRefreshAvailable => !_cooldownTimer.IsRunning;
+        public int PremiumTradesRefreshCost => Mathf.CeilToInt((float)_cooldownTimer.RemainingTime.TotalMinutes) * _config.SkipRefreshGemCostPerMinute;
+        public DateTime NextTradeRefreshTime => _cooldownTimer.TargetTime;
 
         #region Unity Lifecycle & Initialization
 
@@ -47,66 +55,38 @@ namespace Game.Features.Trade
             Instance = this;
 
             // Initialize Logic Modules
-            _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetCurrentResourceCapacity);
+            _cooldownTimer = new TradeCooldownTimer();
             _storageUpgradeCalculator = new StorageUpgradeCalculator(settings: _config.StorageSettings);
+            _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetResourceCapacity);
         }
 
         private void Start()
         {
-            // Register as trade goods Logic Handler
-            RegisterHandler();
-            
-            PlayerDataService.Instance.OnResourceChanged += HandleResourceChange;
+            LoadTradeOffers();
+            InitializeTimer();
 
-            EnsureInitialized();
+            RegisterTradeGoodHandlers();
+            if (PlayerDataService.Instance != null)
+                PlayerDataService.Instance.OnResourceChanged += HandleResourceChange;
+
+            IsDataReady = true;
+            OnDataReady?.Invoke();
         }
 
         private void Update()
         {
-            if (!_isInitialized) return;
-
-            HandleTimerTick();
+            _cooldownTimer.Tick();
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
-            PlayerDataService.Instance.OnResourceChanged -= HandleResourceChange;
 
-            if (TransactionService.Instance != null)
-            {
-                foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
-                {
-                    if (type.IsTradeGood())
-                    {
-                        TransactionService.Instance.UnregisterHandler(type);
-                    }
-                }
-            }
-        }
+            UnregisterTimerEvents();
+            UnregisterTradeGoodHandlers();
 
-        private void EnsureInitialized()
-        {
-            if (_isInitialized) return;
-
-            InitializeOffers();
-            InitializeTimer();
-
-            _isInitialized = true;
-        }
-
-        // Loads saved offers from PlayerDataService. If none exist, creates an empty list.
-        private void InitializeOffers()
-        {
-            var savedOffers = PlayerDataService.Instance.GetActiveOffers();
-            _activeOffersCache = savedOffers != null ? new List<TradeOfferData>(savedOffers) : new List<TradeOfferData>();
-        }
-
-        // Loads the timer state based on saved next refresh time.
-        private void InitializeTimer()
-        {
-            _nextRefreshTime = PlayerDataService.Instance.GetNextTradeRefreshTime();
-            HandleTimerTick(); // To initialize the timer state immediately on load
+            if (PlayerDataService.Instance != null)
+                PlayerDataService.Instance.OnResourceChanged -= HandleResourceChange;
         }
 
         #endregion
@@ -118,7 +98,6 @@ namespace Game.Features.Trade
         /// </summary>
         public IReadOnlyList<TradeOfferData> GetActiveOffers()
         {
-            EnsureInitialized();
             return _activeOffersCache.AsReadOnly();
         }
 
@@ -128,14 +107,14 @@ namespace Game.Features.Trade
         /// <param name="isPremium">Indicates if the refresh is paid with gems (true) or free (false).</param>
         public bool TryRefreshOffers(bool isPremium)
         {
-            if (!isPremium)
+            if (isPremium)
             {
-                if (!_isReadyToRefresh) return false;
-            }
-            else
-            {
-                var cost = TransactionOperation.Spend(ResourceType.Gems, _skipRefreshGemCost);
+                var cost = TransactionOperation.Spend(ResourceType.Gems, PremiumTradesRefreshCost);
                 if (!TransactionService.Instance.TryApplyTransaction(cost)) return false;
+            }
+            else if (!IsFreeTradesRefreshAvailable)
+            {
+                return false;
             }
 
             GenerateOffers();
@@ -149,10 +128,10 @@ namespace Game.Features.Trade
         /// </summary>
         public bool TryExecuteOffer(TradeOfferData offer)
         {
-            if (offer == null || !_activeOffersCache.Contains(offer))
-                return false;
+            if (offer == null || !_activeOffersCache.Contains(offer)) return false;
 
-            List<TransactionOperation> transaction = new List<TransactionOperation>();
+            int operationsCount = offer.Export.Count + offer.Import.Count;
+            var transaction = new List<TransactionOperation>(operationsCount);
 
             foreach (var resource in offer.Export)
                 transaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
@@ -161,11 +140,10 @@ namespace Game.Features.Trade
             foreach (var resource in offer.Import)
                 transaction.Add(TransactionOperation.Add(resource.Type, resource.Amount, forceApply: true));
 
-            if (!TransactionService.Instance.TryApplyTransaction(transaction))
-                return false;
+            if (!TransactionService.Instance.TryApplyTransaction(transaction)) return false;
 
             _activeOffersCache.Remove(offer);
-            
+
             ITradeDataWriter writer = PlayerDataService.Instance;
             writer.SetActiveOffers(_activeOffersCache);
 
@@ -175,27 +153,25 @@ namespace Game.Features.Trade
         }
 
         /// <summary>
-        /// Checks if the player has enough resource to pay the cost.
-        /// </summary>
-        public bool CanAfford(ResourceType type, int cost)
-        {
-            return TransactionService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
-        }
-
-        /// <summary>
         /// Checks if the player has enaugh export resources of the given trade offer.
         /// </summary>
-        public bool CanAfford(TradeOfferData offer)
+        public bool CanAffordOffer(TradeOfferData offer)
         {
-            List<TransactionOperation> transaction = new List<TransactionOperation>();
+            var transaction = new List<TransactionOperation>(offer.Export.Count);
 
             foreach (var resource in offer.Export)
                 transaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
 
-            if (!TransactionService.Instance.CanApplyTransaction(transaction))
-                return false;
+            return TransactionService.Instance.CanApplyTransaction(transaction);
+        }
 
-            return true;
+        // Loads saved offers from PlayerDataService 
+        private void LoadTradeOffers()
+        {
+            var savedOffers = PlayerDataService.Instance.GetActiveOffers();
+            _activeOffersCache = savedOffers != null
+                ? new List<TradeOfferData>(savedOffers)
+                : new List<TradeOfferData>(_config.OffersToGenerate);
         }
 
         // Generates new trade offers and updates the PlayerDataService. Notifies listeners.
@@ -215,81 +191,17 @@ namespace Game.Features.Trade
 
         #endregion
 
-        #region Timer Logic
-
-        public bool IsReadyToRefresh() => _isReadyToRefresh;
-
-        public DateTime GetNextRefreshTime() => PlayerDataService.Instance.GetNextTradeRefreshTime();
-
-        public int GetSkipRefreshGemCost() => _skipRefreshGemCost;
-
-        // Handles the countdown timer logic and triggers events on tick.
-        private void HandleTimerTick()
-        {
-            if (_isReadyToRefresh) return;
-
-            // Calculating the difference between the target refresh time and the current time to determine how much time is left until the next refresh.
-            TimeSpan diff = _nextRefreshTime - DateTime.UtcNow;
-
-            // =================================================Calculate the skip refresh gem cost based on the remaining time TEMPORARY
-            var newSkipCost = Mathf.CeilToInt((float)diff.TotalMinutes * _config.SkipRefreshGemCostPerMinute);
-            if (newSkipCost != _skipRefreshGemCost)
-            {
-                _skipRefreshGemCost = newSkipCost;
-                OnSkipCostChanged?.Invoke(_skipRefreshGemCost);
-            }
-            //============================================================================================================================
-
-            if (diff.TotalSeconds <= 0)
-            {
-                SetTimerState(isReady: true);
-                return;
-            }
-
-            // UI-optimization: Only trigger the timer tick event when the integer value changes
-            int currentIntTimer = Mathf.CeilToInt((float)diff.TotalSeconds);
-            if (currentIntTimer != _lastIntTimer)
-            {
-                _lastIntTimer = currentIntTimer;
-                OnTimerTick?.Invoke(currentIntTimer);
-            }
-        }
-
-        // Resets the timer to the configured cooldown and updates the next refresh time in PlayerDataService.
-        private void ResetTimer()
-        {
-            _nextRefreshTime = DateTime.UtcNow.AddSeconds(_config.RefreshTradesCooldown);
-
-            ITradeDataWriter writer = PlayerDataService.Instance;
-            writer.SetNextTradeRefreshTime(_nextRefreshTime);
-
-            SetTimerState(isReady: false);
-        }
-
-        // Updates the timer state and triggers the refresh status changed event.
-        private void SetTimerState(bool isReady)
-        {
-            _isReadyToRefresh = isReady;
-            OnRefreshStatusChanged?.Invoke(isReady);
-        }
-
-        #endregion
-
-        #region Resources Logic
+        #region Resources & StorageLogic
 
         /// <summary>
         /// Returns the player's trade goods resources for UI display.
         /// </summary>
         public IReadOnlyList<ResourceAmount> GetPlayerResources()
         {
-            var resources = new List<ResourceAmount>();
-            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
-            {
-                if (type.IsTradeGood())
-                {
-                    resources.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
-                }   
-            }
+            var resources = new List<ResourceAmount>(_tradeGoodTypes.Length);
+
+            foreach (var type in _tradeGoodTypes)
+                resources.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
 
             return resources.AsReadOnly();
         }
@@ -303,53 +215,56 @@ namespace Game.Features.Trade
         }
 
         /// <summary>
-        /// Returns CURRENT storage capacity for the specified resource type.
+        /// Gets the current max storage capacity for the specified resource type
         /// </summary>
-        public int GetCurrentResourceCapacity(ResourceType type)
+        public int GetResourceCapacity(ResourceType type)
         {
-            int level = PlayerDataService.Instance.GetStorageLevel(type);
-            return _storageUpgradeCalculator.GetCapacity(level);
+            int currentLevel = PlayerDataService.Instance.GetStorageLevel(type);
+            return _storageUpgradeCalculator.GetCapacityForLevel(currentLevel);
         }
 
         /// <summary>
-        /// Calculates the storage capacity for the next upgrade level of the specified resource type.
+        /// Checks if the player has enough resource to pay the cost.
         /// </summary>
-        public int GetNextResourceCapacity(ResourceType type)
+        public bool CanAffordCost(ResourceType type, int cost)
+        {
+            return TransactionService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
+        }
+
+        /// <summary>
+        /// Gets the storage upgrade data for specified resource type for UI display
+        /// </summary>
+        public StorageUpgradeData GetStorageUpgradeData(ResourceType type)
         {
             int currentLevel = PlayerDataService.Instance.GetStorageLevel(type);
             int nextLevel = currentLevel + 1;
-            return _storageUpgradeCalculator.GetCapacity(nextLevel);
+
+            int currentCapacity = _storageUpgradeCalculator.GetCapacityForLevel(currentLevel);
+            int upgradedCapacity = _storageUpgradeCalculator.GetCapacityForLevel(nextLevel);
+            int defaultCost = _storageUpgradeCalculator.GetDefaultCostForLevel(nextLevel);
+            int premiumCost = _storageUpgradeCalculator.GetPremiumCostForLevel(nextLevel);
+
+            return new StorageUpgradeData(currentCapacity, upgradedCapacity, defaultCost, premiumCost);
         }
 
         /// <summary>
-        /// Calculates the cost to upgrade specific resource storage to the NEXT level.
-        /// </summary>
-        public int GetStorageUpgradeCost(ResourceType type, bool isPremium)
-        {
-            int currentLevel = PlayerDataService.Instance.GetStorageLevel(type);
-            int nextLevel = currentLevel + 1;
-
-            if (isPremium)
-                return _storageUpgradeCalculator.GetPremiumCost(nextLevel);
-            else
-                return _storageUpgradeCalculator.GetDefaultCost(nextLevel);
-        }
-
-        /// <summary>
-        /// Attempts to upgrade storage.
+        /// Attempts to upgrade storage for the specified resource type with premium or default cost option.
         /// </summary>
         public bool TryUpgradeCapacity(ResourceType type, bool premiumPurchase)
         {
-            int cost = GetStorageUpgradeCost(type, premiumPurchase);
+            int nextLevel = PlayerDataService.Instance.GetStorageLevel(type) + 1;
+
+            int cost = premiumPurchase
+                ? _storageUpgradeCalculator.GetPremiumCostForLevel(nextLevel)
+                : _storageUpgradeCalculator.GetDefaultCostForLevel(nextLevel);
+
             ResourceType costType = premiumPurchase ? ResourceType.Gems : type;
 
             if (!TransactionService.Instance.TryApplyTransaction(TransactionOperation.Spend(costType, cost)))
                 return false;
 
-            int newLevel = PlayerDataService.Instance.GetStorageLevel(type) + 1;
-            
             ITradeDataWriter writer = PlayerDataService.Instance;
-            writer.SetStorageLevel(type, newLevel);
+            writer.SetStorageLevel(type, nextLevel);
 
             OnTradeGoodChanged?.Invoke(type);
             return true;
@@ -365,20 +280,88 @@ namespace Game.Features.Trade
 
         #endregion
 
+        #region Timer Logic
+
+        private void InitializeTimer()
+        {
+            RegisterTimerEvents();
+
+            var savedRefreshTime = PlayerDataService.Instance.GetNextTradeRefreshTime();
+
+            // Start the timer only if the saved refresh time is in the future.
+            if (savedRefreshTime > DateTime.UtcNow)
+                _cooldownTimer.Start(savedRefreshTime);
+        }
+
+        // Resets the timer to the configured cooldown and updates the next refresh time in PlayerDataService.
+        private void ResetTimer()
+        {
+            var nextRefreshTime = DateTime.UtcNow.AddSeconds(_config.RefreshTradesCooldown);
+
+            _cooldownTimer.Start(nextRefreshTime);
+
+            ITradeDataWriter writer = PlayerDataService.Instance;
+            writer.SetNextTradeRefreshTime(nextRefreshTime);
+
+            OnFreeTradesRefreshStatusChanged?.Invoke(IsFreeTradesRefreshAvailable);
+        }
+
+        private void RegisterTimerEvents()
+        {
+            UnregisterTimerEvents();
+
+            _cooldownTimer.OnTickSeconds += NotifySecondsLeft;
+            _cooldownTimer.OnTickMinutes += NotifyPremiumTradesRefreshCostChanged;
+            _cooldownTimer.OnFinished += NotifyFreeTradesRefreshAvailable;
+        }
+
+        private void UnregisterTimerEvents()
+        {
+            if (_cooldownTimer == null) return;
+
+            _cooldownTimer.OnTickSeconds -= NotifySecondsLeft;
+            _cooldownTimer.OnTickMinutes -= NotifyPremiumTradesRefreshCostChanged;
+            _cooldownTimer.OnFinished -= NotifyFreeTradesRefreshAvailable;
+        }
+
+        private void NotifySecondsLeft()
+        {
+            int secondsLeft = Mathf.CeilToInt((float)_cooldownTimer.RemainingTime.TotalSeconds);
+            OnTimerSecondsTick?.Invoke(secondsLeft);
+        }
+
+        private void NotifyPremiumTradesRefreshCostChanged()
+        {
+            OnPremiumTradesRefreshCostChanged?.Invoke(PremiumTradesRefreshCost);
+        }
+
+        private void NotifyFreeTradesRefreshAvailable()
+        {
+            OnFreeTradesRefreshStatusChanged?.Invoke(IsFreeTradesRefreshAvailable);
+        }
+
+        #endregion
+
         #region IResourceLogicHandler Implementation
 
-        private void RegisterHandler()
+        private void RegisterTradeGoodHandlers()
         {
-            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+            foreach (var type in _tradeGoodTypes)
             {
-                if (type.IsTradeGood())
-                {
-                    TransactionService.Instance.RegisterHandler(type, this);
-                }
+                TransactionService.Instance.RegisterHandler(type, this);
             }
         }
 
-        
+        private void UnregisterTradeGoodHandlers()
+        {
+            if (TransactionService.Instance == null) return;
+
+            foreach (var type in _tradeGoodTypes)
+            {
+                TransactionService.Instance.UnregisterHandler(type);
+            }
+        }
+
         bool IResourceLogicHandler.CanApplyTransactionOperation(ResourceType type, int currentAmount, int delta)
         {
             int newAmount = currentAmount + delta;
@@ -387,7 +370,7 @@ namespace Game.Features.Trade
 
             if (delta > 0)
             {
-                int capacity = GetCurrentResourceCapacity(type);
+                int capacity = GetResourceCapacity(type);
                 if (newAmount > capacity) return false;
             }
 
@@ -396,7 +379,7 @@ namespace Game.Features.Trade
 
         int IResourceLogicHandler.CalculateTransactionOperation(ResourceType type, int currentAmount, int delta)
         {
-            int capacity = GetCurrentResourceCapacity(type);
+            int capacity = GetResourceCapacity(type);
             return Mathf.Clamp(currentAmount + delta, 0, capacity);
         }
 

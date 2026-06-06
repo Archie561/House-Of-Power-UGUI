@@ -21,7 +21,7 @@ namespace Game.Features.Trade
         /// <summary>
         /// Calculates the storage capacity for THIS level.
         /// </summary>
-        public int GetCapacity(int level)
+        public int GetCapacityForLevel(int level)
         {
             if (level <= 1) return _settings.BaseCapacity;
 
@@ -35,10 +35,10 @@ namespace Game.Features.Trade
         /// <summary>
         /// Calculates the default cost required to upgrade to the THIS level.
         /// </summary>
-        public int GetDefaultCost(int nextLevel)
+        public int GetDefaultCostForLevel(int nextLevel)
         {
             int currentLevel = nextLevel - 1;
-            int currentCapacity = GetCapacity(currentLevel);
+            int currentCapacity = GetCapacityForLevel(currentLevel);
 
             float cost = currentCapacity * _settings.UpgradeCostFillRate;
 
@@ -48,7 +48,7 @@ namespace Game.Features.Trade
         /// <summary>
         /// Calculates the premium cost required to upgrade to the THIS level.
         /// </summary>
-        public int GetPremiumCost(int nextLevel)
+        public int GetPremiumCostForLevel(int nextLevel)
         {
             float cost = _settings.BasePremiumCost * Mathf.Pow(_settings.PremiumCostMultiplier, nextLevel - 2);
             return Mathf.CeilToInt(cost);

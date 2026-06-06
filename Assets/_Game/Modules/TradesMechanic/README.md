@@ -1,39 +1,23 @@
-# Trade Mechanics Management
-This module is responsible for the logic of calculating and displaying all parameters in the trade mechanics.
+# Модуль механіки торгівлі
 
-## Core Elements
-**TradeConfig:** Contains general mechanics settings that can be easily modified for testing (offer refresh time and price, offer generation parameters, storage upgrade parameters).
+Цей модуль керує економікою обміну ресурсів, генерацією торгових пропозицій (оферів), відліком часу до оновлення та системою покращення складів.
+Вся взаємодія UI з модулем відбувається через єдину точку входу — **TradeLogicController**. Модуль побудований за патерном Facade (Фасад), що дозволяє приховати складну математику та роботу з даними від візуальної частини гри.
 
-**TradeLogicController:** Responsible for the logic and calculation of all mechanics data. It handles the generation and execution of offers, timer logic, adding and deducting resources, etc. It implements the **IResourceLogicHandler** interface, defining the transaction logic for trade-type resources. It contains methods for passing mechanics data to the View (including data from the Game Data Service) but does not interact directly with View components in any way.
+# Архітектура Модуля
 
-**TradeViewController:** Receives raw data from the logic and passes it to the View. It is responsible for updating the interface and contains methods for handling user interaction with the UI. It does not participate in directly changing the player's data; instead, it notifies the logic (TradeLogicController) of the performed action, which then executes the required operation.
+Для забезпечення чистої архітектури та дотримання принципу єдиної відповідальності, логіка розділена на Оркестратор та ізольовані підсистеми:
 
-## Other Elements
-Other elements of the module include:
+### TradeLogicController (Оркестратор):
+Головний MonoBehaviour-синглтон. Його єдина задача — керувати життєвим циклом підсистем, запитувати/зберігати дані у **PlayerDataService**, проводити транзакції через **TransactionService** та транслювати події (Events) для UI. Також він реалізує інтерфейс **ITradeDataWriter** завдяки якому має доступ до записування змін повʼязаних з механікою трейдів у **PlayerDataService**.
 
-**Helper Classes (Helpers):** Classes for generating offers and calculating the cost of storage upgrades (TradeOfferGenerator, StorageUpgradeCalculator).
+### TradeViewController
+Клас, що відповідає за відображення і оновлення всього UI на сцені, також обробляє події кліків і інші користувацькі взаємодії. Не містить самостійної бізнес-логіки, натомість, отримує дані для відображення від **TradeLogicController**.
 
-**Model Classes (Models):** Contain pure data about an object without logic (TradeOfferData).
+### Ізольовані підсистеми (Pure Logic):
+Кілька незалежних C# класів без стану на сцені, які виконують вузькоспеціалізовані задачі. Створені щоб не описувати всю логіку безпосередньо у **TradeLogicController**.
+**TradeCooldownTimer**: Рахує час та вартість пропуску таймера в кристалах (наслідується від універсального BaseCooldownTimer).
+**StorageUpgradeCalculator**: Чиста математика. Обчислює місткість та вартість покращення складів на будь-якому рівні.
+**TradeOfferGenerator**: Генерує нові торгові пропозиції на основі конфігів та лімітів.
 
-**View Classes (Views):** Passive components strictly responsible for rendering the data passed to them in the UI (TradeOfferView, ResourceRowView).
-
-
-
-# Управління механікою трейдів
-Цей модуль відповідає за логіку обчислення і відображення всіх параметрів у механіці трейдів.
-
-## Основні елементи
-**TradeConfig:** Містить загальні налаштування механіки, які можна легко змінити для тестування (час і ціна оновлення оферів, параметри генерації оферів, параметри покращення сховища).
-
-**TradeLogicController:** Відповідає за логіку і обчислення всіх даних механіки. Обробляє генерацію і виконання оферів, логіку таймера, поповнення та списання ресурсів тощо. Реалізовує інтерфейс **IResourceLogicHandler**, де визначає логіку транзакцій для ресурсів типу трейду. Містить методи для передачі даних механіки у View (в тому числі даних із Game Data Service), але ніяк безпосередньо не взаємодіє із View-компонентами.
-
-**TradeViewController:** Отримує сирі дані від логіки і передає їх у View. Відповідає за оновлення інтерфейсу і містить методи для обробки взаємодії користувача з UI. Не бере участі у безпосередній зміні даних гравця, натомість сповіщає про виконану дію логіку (TradeLogicController), яка вже виконує потрібну операцію.
-
-## Інші елементи
-До інших елементів модуля входять:
-
-**Допоміжні класи (Helpers):** Класи для генерації оферів і обрахунку вартості покращення сховища (TradeOfferGenerator, StorageUpgradeCalculator).
-
-**Класи-моделі (Models):** Містять чисті дані про об'єкт без логіки (TradeOfferData).
-
-**Класи-в'ю (Views):** Пасивні компоненти, які відповідають виключно за відображення переданих їм даних в UI (TradeOfferView, ResourceRowView).
+### DTO Контейнери і View:
+Класи-обгортки для перенесення даних а також view-класи для відображення даних на сцені.
