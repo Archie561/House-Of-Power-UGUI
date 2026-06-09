@@ -71,6 +71,10 @@ MonoBehaviour:
     m_Key: Popups.UpgradePolicyDescription
     m_Metadata:
       m_Items: []
+  - m_Id: 62330242247720960
+    m_Key: Popups.AcceptOfferOverflowWarning
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

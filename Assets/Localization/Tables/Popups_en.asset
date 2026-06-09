@@ -82,6 +82,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 8845453836125208655
+  - m_Id: 62330242247720960
+    m_Localized: Some storages do not have enough capacity to fit all the imported
+      resources!
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

@@ -18,6 +18,7 @@ namespace Game.Features.Navigation
 
         [Header("References")]
         [SerializeField] private List<NavigationTab> _tabs;
+        [SerializeField] private Image _backgroundImage;
 
         public event Action<TabType> OnTabChanged;
 
@@ -45,6 +46,11 @@ namespace Game.Features.Navigation
             foreach (var tab in _tabs)
             {
                 bool isActive = (tab.Type == type);
+
+                if (isActive && tab.BackgroundImage != null)
+                {
+                    _backgroundImage.sprite = tab.BackgroundImage;
+                }
 
                 if (tab.ContentScreen != null)
                 {

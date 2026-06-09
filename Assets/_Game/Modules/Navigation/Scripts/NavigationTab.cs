@@ -13,6 +13,7 @@ namespace Game.Features.Navigation
     {
         public TabType Type;
         public Button Button;
+        public Sprite BackgroundImage;
         public GameObject ContentScreen;
     }
 }

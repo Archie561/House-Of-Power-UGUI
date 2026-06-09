@@ -246,7 +246,7 @@ namespace Game.Features.Trade
 
         private void OnOfferClicked(TradeOfferData offer)
         {
-            var canAfford = TradeLogicController.Instance.CanAffordOffer(offer);
+            var canAfford = TradeLogicController.Instance.CanAffordOffer(offer, out bool hasStorageOverflow);
 
             // Can be used to display warning popup later
             // var isEnaughCapacity = TradeLogicController.Instance.IsEnaughCapacity(offer);
@@ -255,6 +255,7 @@ namespace Game.Features.Trade
             (
                 offer,
                 canAfford,
+                hasStorageOverflow,
                 onConfirmClick: () =>
                 {
                     TradeLogicController.Instance.TryExecuteOffer(offer);

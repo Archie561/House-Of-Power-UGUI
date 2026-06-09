@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
+using TMPro;
 
 namespace Game.Features.Popup
 {
@@ -17,6 +18,7 @@ namespace Game.Features.Popup
         [SerializeField] private Image _flagIcon;
         [SerializeField] private Transform _exportTransform;
         [SerializeField] private Transform _importTransform;
+        [SerializeField] private TextMeshProUGUI _storageOverflowWarningText;
         [SerializeField] private Button _acceptButton;
         [SerializeField] private Button _cancelButton;
         [SerializeField] private CanvasGroup _acceptButtonCanvasGroup;
@@ -48,6 +50,9 @@ namespace Game.Features.Popup
             // Populate new views
             AddResourcesView(popupData.OfferData.Import, isExport: false);
             AddResourcesView(popupData.OfferData.Export, isExport: true);
+
+            // Set storage overflow warning visibility
+            _storageOverflowWarningText.gameObject.SetActive(popupData.DisplayOverflowStorageWarning);
 
             // Update Button State
             _acceptButtonCanvasGroup.blocksRaycasts = popupData.CanAfford;

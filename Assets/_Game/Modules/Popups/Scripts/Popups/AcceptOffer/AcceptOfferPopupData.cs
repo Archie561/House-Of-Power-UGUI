@@ -10,13 +10,15 @@ namespace Game.Features.Popup
     {
         public TradeOfferData OfferData { get; private set; }
         public bool CanAfford { get; private set; }
+        public bool DisplayOverflowStorageWarning { get; private set; }
         public Action OnConfirmClick { get; private set; }
         public Action OnCancelClick { get; private set; }
 
-        public AcceptOfferPopupData(TradeOfferData offerData, bool canAfford, Action onConfirmClick, Action onCancelClick)
+        public AcceptOfferPopupData(TradeOfferData offerData, bool canAfford, bool displayOverflowStorageWarning, Action onConfirmClick, Action onCancelClick)
         {
             OfferData = offerData;
             CanAfford = canAfford;
+            DisplayOverflowStorageWarning = displayOverflowStorageWarning;
             OnConfirmClick = onConfirmClick;
             OnCancelClick = onCancelClick;
         }

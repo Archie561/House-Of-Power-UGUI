@@ -126,7 +126,7 @@ namespace Game.Features.Trade
         /// <summary>
         /// Attempts to execute the given trade offer. If successful, updates resources and removes the offer.
         /// </summary>
-        public bool TryExecuteOffer(TradeOfferData offer)
+        public bool TryExecuteOffer(TradeOfferData offer, bool ignoreStorageOverflow = false)
         {
             if (offer == null || !_activeOffersCache.Contains(offer)) return false;
 
@@ -153,16 +153,22 @@ namespace Game.Features.Trade
         }
 
         /// <summary>
-        /// Checks if the player has enaugh export resources of the given trade offer.
+        /// Checks if the player has enough export resources of the given trade offer. Also returns if accepting the offer would cause storage overflow for any of the imported resources,
+        /// so the UI can display a warning if needed. In the future method can be modified to return a list of overloaded resources
         /// </summary>
-        public bool CanAffordOffer(TradeOfferData offer)
+        public bool CanAffordOffer(TradeOfferData offer, out bool hasStorageOverflow)
         {
-            var transaction = new List<TransactionOperation>(offer.Export.Count);
+            var exportTransaction = new List<TransactionOperation>(offer.Export.Count);
+            var importTransaction = new List<TransactionOperation>(offer.Import.Count);
 
             foreach (var resource in offer.Export)
-                transaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
+                exportTransaction.Add(TransactionOperation.Spend(resource.Type, resource.Amount));
 
-            return TransactionService.Instance.CanApplyTransaction(transaction);
+            foreach (var resource in offer.Import)
+                importTransaction.Add(TransactionOperation.Add(resource.Type, resource.Amount));
+                
+            hasStorageOverflow = !TransactionService.Instance.CanApplyTransaction(importTransaction);
+            return TransactionService.Instance.CanApplyTransaction(exportTransaction);
         }
 
         // Loads saved offers from PlayerDataService 

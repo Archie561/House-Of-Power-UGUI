@@ -88,6 +88,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 8845453836125208656
+  - m_Id: 62330242247720960
+    m_Localized: "\u0414\u0435\u044F\u043A\u0456 \u0441\u0445\u043E\u0432\u0438\u0449\u0430
+      \u043D\u0435 \u043C\u0430\u044E\u0442\u044C \u0434\u043E\u0441\u0442\u0430\u0442\u043D\u044C\u043E\u0433\u043E
+      \u043E\u0431'\u0454\u043C\u0443 \u0449\u043E\u0431 \u0432\u043C\u0456\u0441\u0442\u0438\u0442\u0438
+      \u0432\u0441\u0456 \u0440\u0435\u0441\u0443\u0440\u0441\u0438 \u0456\u043C\u043F\u043E\u0440\u0442\u0443!"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
