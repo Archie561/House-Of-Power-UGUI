@@ -19,6 +19,7 @@ namespace Game.Features.Popup
         [SerializeField] private Transform _exportTransform;
         [SerializeField] private Transform _importTransform;
         [SerializeField] private TextMeshProUGUI _storageOverflowWarningText;
+        [SerializeField] private TextMeshProUGUI _cantAffordOfferWarningText;
         [SerializeField] private Button _acceptButton;
         [SerializeField] private Button _cancelButton;
         [SerializeField] private CanvasGroup _acceptButtonCanvasGroup;
@@ -50,6 +51,9 @@ namespace Game.Features.Popup
             // Populate new views
             AddResourcesView(popupData.OfferData.Import, isExport: false);
             AddResourcesView(popupData.OfferData.Export, isExport: true);
+
+            // Set cant afford warning visibility
+            _cantAffordOfferWarningText.gameObject.SetActive(!popupData.CanAfford);
 
             // Set storage overflow warning visibility
             _storageOverflowWarningText.gameObject.SetActive(popupData.DisplayOverflowStorageWarning);

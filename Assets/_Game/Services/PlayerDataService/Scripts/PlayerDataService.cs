@@ -17,10 +17,12 @@ namespace Game.General
         [Header("Configuration")]
         [SerializeField] private PlayerConfig _playerConfig;
 
+        // --- State ---
         private PlayerData _playerData;
         private SaveLoadSystem _saveLoadSystem;
         private bool _isDirty;
 
+        // --- Events ---
         public event Action<ResourceChangeData> OnResourceChanged;
 
         #region Unity Lifecycle
@@ -88,6 +90,11 @@ namespace Game.General
             }
         }
 
+        /// <summary>
+        /// Determines if its first session for the player.
+        /// </summary>
+        public bool IsFirstSession() => _playerData.IsFirstSession;
+
         // The only method that changes the value of the player's resources
         void IResourceDataWriter.ApplyResourceChange(ResourceType type, int oldValue, int newValue)
         {
@@ -108,11 +115,6 @@ namespace Game.General
 
             _isDirty = true;
         }
-
-        /// <summary>
-        /// Determines if its first session for the player.
-        /// </summary>
-        public bool IsFirstSession() => _playerData.IsFirstSession;
 
         // Method to set first session flag.
         private void SetFirstSession(bool isFirst)

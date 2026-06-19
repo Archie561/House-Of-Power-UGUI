@@ -57,7 +57,7 @@ namespace Game.Features.Trade
             // Initialize Logic Modules
             _cooldownTimer = new TradeCooldownTimer();
             _storageUpgradeCalculator = new StorageUpgradeCalculator(settings: _config.StorageSettings);
-            _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetResourceCapacity);
+            _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetStorageCapacity);
         }
 
         private void Start()
@@ -126,7 +126,7 @@ namespace Game.Features.Trade
         /// <summary>
         /// Attempts to execute the given trade offer. If successful, updates resources and removes the offer.
         /// </summary>
-        public bool TryExecuteOffer(TradeOfferData offer, bool ignoreStorageOverflow = false)
+        public bool TryExecuteOffer(TradeOfferData offer)
         {
             if (offer == null || !_activeOffersCache.Contains(offer)) return false;
 
@@ -223,7 +223,7 @@ namespace Game.Features.Trade
         /// <summary>
         /// Gets the current max storage capacity for the specified resource type
         /// </summary>
-        public int GetResourceCapacity(ResourceType type)
+        public int GetStorageCapacity(ResourceType type)
         {
             int currentLevel = PlayerDataService.Instance.GetStorageLevel(type);
             return _storageUpgradeCalculator.GetCapacityForLevel(currentLevel);
@@ -299,19 +299,6 @@ namespace Game.Features.Trade
                 _cooldownTimer.Start(savedRefreshTime);
         }
 
-        // Resets the timer to the configured cooldown and updates the next refresh time in PlayerDataService.
-        private void ResetTimer()
-        {
-            var nextRefreshTime = DateTime.UtcNow.AddSeconds(_config.RefreshTradesCooldown);
-
-            _cooldownTimer.Start(nextRefreshTime);
-
-            ITradeDataWriter writer = PlayerDataService.Instance;
-            writer.SetNextTradeRefreshTime(nextRefreshTime);
-
-            OnFreeTradesRefreshStatusChanged?.Invoke(IsFreeTradesRefreshAvailable);
-        }
-
         private void RegisterTimerEvents()
         {
             UnregisterTimerEvents();
@@ -328,6 +315,19 @@ namespace Game.Features.Trade
             _cooldownTimer.OnTickSeconds -= NotifySecondsLeft;
             _cooldownTimer.OnTickMinutes -= NotifyPremiumTradesRefreshCostChanged;
             _cooldownTimer.OnFinished -= NotifyFreeTradesRefreshAvailable;
+        }
+
+        // Resets the timer to the configured cooldown and updates the next refresh time in PlayerDataService.
+        private void ResetTimer()
+        {
+            var nextRefreshTime = DateTime.UtcNow.AddSeconds(_config.RefreshTradesCooldown);
+
+            _cooldownTimer.Start(nextRefreshTime);
+
+            ITradeDataWriter writer = PlayerDataService.Instance;
+            writer.SetNextTradeRefreshTime(nextRefreshTime);
+
+            OnFreeTradesRefreshStatusChanged?.Invoke(IsFreeTradesRefreshAvailable);
         }
 
         private void NotifySecondsLeft()
@@ -376,7 +376,7 @@ namespace Game.Features.Trade
 
             if (delta > 0)
             {
-                int capacity = GetResourceCapacity(type);
+                int capacity = GetStorageCapacity(type);
                 if (newAmount > capacity) return false;
             }
 
@@ -385,7 +385,7 @@ namespace Game.Features.Trade
 
         int IResourceLogicHandler.CalculateTransactionOperation(ResourceType type, int currentAmount, int delta)
         {
-            int capacity = GetResourceCapacity(type);
+            int capacity = GetStorageCapacity(type);
             return Mathf.Clamp(currentAmount + delta, 0, capacity);
         }
 

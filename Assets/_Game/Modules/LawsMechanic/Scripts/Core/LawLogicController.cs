@@ -17,18 +17,29 @@ namespace Game.Features.Law
         [Header("Config")]
         [SerializeField] private LawConfig _lawConfig;
 
-        // --- Events ---
-        public event Action<ResourceType> OnPolicyAmountChanged;
-        public event Action<int> OnLawsCountChanged;
-        public event Action<int> OnTimerTick;
-
         // --- State ---
         private List<LawData> _availableLaws = new List<LawData>();
-        private bool _isInitialized = false;
         private LawData _activeLaw;
         private int _lawsLeftToExecute;
-        private DateTime _nextReplenishTime;
-        private int _lastIntTimer = -1; // For UI events optimization
+        private static readonly ResourceType[] _policyTypes = Enum.GetValues(typeof(ResourceType))
+            .Cast<ResourceType>()
+            .Where(t => t.IsPolicyValue())
+            .ToArray();
+
+        // --- Dependencies ---
+        private LawCooldownTimer _cooldownTimer;
+        private PolicyUpgradeCalculator _policyUpgradeCalculator;
+
+        // --- Events ---
+        public event Action OnDataReady;
+        public event Action<ResourceType> OnPolicyAmountChanged;
+        public event Action<int> OnLawsCountChanged;
+        public event Action<int> OnTimerSecondsTick;
+
+        // --- Properties ---
+        public bool IsDataReady { get; private set; }
+        public int MaxLawsCount => _lawConfig.MaxAvailableLaws;
+        public int CurrentLawsCount => _lawsLeftToExecute;
 
         #region Unity Lifecycle & Initialization
 
@@ -40,59 +51,38 @@ namespace Game.Features.Law
                 return;
             }
             Instance = this;
+
+            _cooldownTimer = new LawCooldownTimer();
+            _policyUpgradeCalculator = new PolicyUpgradeCalculator(_lawConfig, PlayerDataService.Instance.GetResourceAmount);
         }
 
         private void Start()
         {
-            // Register this controller as a handler for policy-related resource types
-            RegisterHandler();
-            
-            PlayerDataService.Instance.OnResourceChanged += HandleResourceChange;
-            EnsureInitialized();
+            InitializeLaws();
+            InitializeTimer();
+
+            RegisterPolicyHandlers();
+            if (PlayerDataService.Instance != null)
+                PlayerDataService.Instance.OnResourceChanged += HandleResourceChange;
+
+            IsDataReady = true;
+            OnDataReady?.Invoke();
         }
 
         private void Update()
         {
-            if (!_isInitialized) return;
-            HandleTimerTick();
+            _cooldownTimer.Tick();
         }
 
         private void OnDestroy()
         {
-            UnregisterHandler();
-
-            PlayerDataService.Instance.OnResourceChanged -= HandleResourceChange;
             if (Instance == this) Instance = null;
-        }
 
-        private void EnsureInitialized()
-        {
-            if (_isInitialized) return;
+            UnregisterPolicyHandlers();
+            UnregisterTimerEvents();
 
-            InitializeLaws();
-            InitializeTimer();
-
-            _isInitialized = true;
-        }
-
-        // Initializes the list of available laws based on the configuration and game data, and sets the active law if one is already selected.
-        private void InitializeLaws()
-        {
-            var usedLawIds = new HashSet<string>(PlayerDataService.Instance.GetUsedLawIds());
-            _availableLaws = _lawConfig.GetAllLaws().Where(law => !usedLawIds.Contains(law.Id)).ToList();
-
-            _lawsLeftToExecute = PlayerDataService.Instance.GetAvailableLawsCount();
-
-            _activeLaw = _availableLaws.FirstOrDefault(law => law.Id == PlayerDataService.Instance.GetActiveLawId());
-        }
-
-        // Loads the timer state based on saved next refresh time.
-        private void InitializeTimer()
-        {
-            _nextReplenishTime = PlayerDataService.Instance.GetNextLawsRefreshTime();
-            ProcessOfflineProgress();
-            HandleTimerTick(); // To update the timer state immediately after processing offline progress
-            UpdateLawsCount(0); // To trigger the UI update for laws count based on the loaded state
+            if (PlayerDataService.Instance != null)
+                PlayerDataService.Instance.OnResourceChanged -= HandleResourceChange;
         }
 
         #endregion
@@ -104,59 +94,18 @@ namespace Game.Features.Law
         /// </summary>
         public IReadOnlyList<ResourceAmount> GetPlayerPolicies()
         {
-            List<ResourceAmount> policies = new List<ResourceAmount>();
+            var resources = new List<ResourceAmount>(_policyTypes.Length);
 
-            foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
-            {
-                if (type.IsPolicyValue())
-                {
-                    policies.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
-                }
-            }
+            foreach (var type in _policyTypes)
+                resources.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
 
-            return policies.AsReadOnly();
+            return resources.AsReadOnly();
         }
 
         /// <summary>
-        /// Calculates the current level, accumulated experience points, and required experience points for the next
-        /// level for a specified resource type.
+        /// Returns all the necessary data to display the current progress of a policy.
         /// </summary>
-        public (int level, int currentXp, int requiredXp) GetPolicyLevelData(ResourceType type)
-        {
-            int totalXp = PlayerDataService.Instance.GetResourceAmount(type);
-
-            int currentLevel = 1;
-            int requiredXp = _lawConfig.BaseRequiredXpForLevel;
-
-            // Subtracting the necessary experience until there are enough total points
-            while (totalXp >= requiredXp)
-            {
-                totalXp -= requiredXp;
-                currentLevel++;
-                requiredXp += _lawConfig.XpIncreasePerLevel;
-            }
-
-            // What is left in totalXp after all subtractions is the current level progress
-            return (currentLevel, totalXp, requiredXp);
-        }
-
-        /// <summary>
-        /// Calculates the cost in gems to upgrade the specified policy to the next level,
-        /// based on the experience points needed and the cost per 10 XP defined in the configuration.
-        /// </summary>
-        public int GetPolicyXpUpgradeCost(ResourceType type)
-        {
-            if (!type.IsPolicyValue()) return 0;
-
-            var levelData = GetPolicyLevelData(type);
-            var xpToNextLevel = levelData.requiredXp - levelData.currentXp;
-
-            if (xpToNextLevel <= 0) return 0;
-
-            // most efficient way to round up to the nearest 10 and calculate the cost based on that
-            int packsNeeded = (xpToNextLevel + 9) / 10;
-            return packsNeeded * _lawConfig.CostPer10Xp;
-        }
+        public PolicyProgressData GetPolicyProgressData(ResourceType type) => _policyUpgradeCalculator.GetPolicyProgressData(type);
 
         /// <summary>
         /// Attempts to upgrade the specified policy by spending gems. If the player has enough gems, it applies the transaction,
@@ -166,16 +115,24 @@ namespace Game.Features.Law
         {
             if (!type.IsPolicyValue()) return false;
 
-            var transaction = TransactionOperation.Spend(ResourceType.Gems, GetPolicyXpUpgradeCost(type));
+            var policyProgressData = GetPolicyProgressData(type);
+
+            var transaction = TransactionOperation.Spend(ResourceType.Gems, policyProgressData.UpgradeCostGems);
             if (TransactionService.Instance.TryApplyTransaction(transaction))
             {
-                var levelData = GetPolicyLevelData(type);
-                var xpToNextLevel = levelData.requiredXp - levelData.currentXp;
-                TransactionService.Instance.TryApplyTransaction(TransactionOperation.Add(type, xpToNextLevel));
+                TransactionService.Instance.TryApplyTransaction(TransactionOperation.Add(type, policyProgressData.MissingXp));
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks if the player has enough resource to pay the cost.
+        /// </summary>
+        public bool CanAfford(ResourceType type, int cost)
+        {
+            return TransactionService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
         }
 
         /// Handles changes to resources, specifically looking for changes in policy values to trigger the appropriate events for UI updates.
@@ -192,37 +149,18 @@ namespace Game.Features.Law
         #region Laws Logic
 
         /// <summary>
-        /// Gets the number of laws remaining to be executed.
+        /// Returns the data necessary to display the current replenishment status of laws.
         /// </summary>
-        public int GetCurrentLawsCount()
+        public LawsReplenishData GetLawsReplenishData()
         {
-            EnsureInitialized();
-            return _lawsLeftToExecute;
-        }
-
-        /// <summary>
-        /// Returns the number of maximum available laws
-        /// </summary>
-        public int GetMaxLawsCount() => _lawConfig.MaxAvailableLaws;
-
-        /// <summary>
-        /// Calculates the total time required to fully replenish the player's available laws
-        /// </summary>
-        public DateTime GetTotalLawsReplenishTime()
-        {
-            EnsureInitialized();
             int lawsToReplenish = _lawConfig.MaxAvailableLaws - _lawsLeftToExecute;
-            return _nextReplenishTime.AddSeconds((lawsToReplenish - 1) * _lawConfig.ReplenishCooldownSeconds);
-        }
+            int totalCost = lawsToReplenish * _lawConfig.LawReplenishCost;
 
-        /// <summary>
-        /// Calculates the total cost in gems to fully replenish the player's available laws
-        /// </summary>
-        public int GetTotalLawsReplenishCost()
-        {
-            EnsureInitialized();
-            int lawsToReplenish = _lawConfig.MaxAvailableLaws - _lawsLeftToExecute;
-            return lawsToReplenish * _lawConfig.LawReplenishCost;
+            DateTime totalReplenishTime = _cooldownTimer.IsRunning
+                ? _cooldownTimer.TargetTime.AddSeconds((lawsToReplenish - 1) * _lawConfig.ReplenishCooldownSeconds)
+                : DateTime.UtcNow;
+
+            return new LawsReplenishData(totalReplenishTime, totalCost);
         }
 
         /// <summary>
@@ -231,18 +169,15 @@ namespace Game.Features.Law
         /// </summary>
         public bool TryReplenishLaws()
         {
-            EnsureInitialized();
-
             if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return false;
 
-            var transaction = TransactionOperation.Spend(ResourceType.Gems, GetTotalLawsReplenishCost());
+            int cost = (_lawConfig.MaxAvailableLaws - _lawsLeftToExecute) * _lawConfig.LawReplenishCost;
+            var transaction = TransactionOperation.Spend(ResourceType.Gems, cost);
+
             if (TransactionService.Instance.TryApplyTransaction(transaction))
             {
                 UpdateLawsCount(_lawConfig.MaxAvailableLaws);
-                _nextReplenishTime = DateTime.MinValue;
-                
-                ILawDataWriter writer = PlayerDataService.Instance;
-                writer.SetNextLawRefreshTime(_nextReplenishTime);
+                _cooldownTimer.Stop();
 
                 return true;
             }
@@ -256,13 +191,22 @@ namespace Game.Features.Law
         /// </summary>
         public bool TryGetActiveLaw(out LawData law)
         {
-            EnsureInitialized();
-
             if (_activeLaw == null && _lawsLeftToExecute > 0)
             {
-                _activeLaw = GetRandomLaw();
-                
                 ILawDataWriter writer = PlayerDataService.Instance;
+
+                // If there are no available laws left, we reset the used laws and refill the available laws list
+                if (_availableLaws.Count == 0)
+                {
+                    writer.ResetUsedLaws();
+                    _availableLaws.AddRange(_lawConfig.GetAllLaws());
+                }
+
+                int randomIndex = UnityEngine.Random.Range(0, _availableLaws.Count);
+                _activeLaw = _availableLaws[randomIndex];
+
+                _availableLaws.RemoveAt(randomIndex);
+
                 writer.SetActiveLawId(_activeLaw.Id);
             }
 
@@ -280,47 +224,25 @@ namespace Game.Features.Law
             // Nulling the active law to prevent double execution
             var law = _activeLaw;
             _activeLaw = null;
-
-            // Marking this law as used and removing it from the available pool
-            _availableLaws.Remove(law);
-            
+    
             ILawDataWriter writer = PlayerDataService.Instance;
             writer.MarkLawAsUsed(law.Id);
 
             var effects = accepted ? law.OnAcceptEffects : law.OnRejectEffects;
-            var transaction = effects.Select(e => new TransactionOperation(e.Type, e.Amount, forceApply: true)).ToList();
-            TransactionService.Instance.TryApplyTransaction(transaction);
 
+            var transaction = new List<TransactionOperation>(effects.Count);
+            foreach (var effect in effects)
+                transaction.Add(new TransactionOperation(effect.Type, effect.Amount, forceApply: true));
+
+            TransactionService.Instance.TryApplyTransaction(transaction);
             UpdateLawsCount(-1);
 
             // if the player had maximum laws before executing this one, we start the cooldown for replenishment
             if (_lawsLeftToExecute == _lawConfig.MaxAvailableLaws - 1)
             {
-                _nextReplenishTime = DateTime.UtcNow.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
-                writer.SetNextLawRefreshTime(_nextReplenishTime);
+                _cooldownTimer.Start(DateTime.UtcNow.AddSeconds(_lawConfig.ReplenishCooldownSeconds));
+                writer.SetNextLawRefreshTime(_cooldownTimer.TargetTime);
             }
-        }
-
-        /// <summary>
-        /// Checks if the player has enough resource to pay the cost.
-        /// </summary>
-        public bool CanAfford(ResourceType type, int cost)
-        {
-            return TransactionService.Instance.CanApplyTransaction(TransactionOperation.Spend(type, cost));
-        }
-
-        private LawData GetRandomLaw()
-        {
-            // Reset the available laws pool if all laws have been used, allowing them to be drawn again
-            if (_availableLaws.Count == 0)
-            {
-                ILawDataWriter writer = PlayerDataService.Instance;
-                writer.ResetUsedLaws();
-
-                _availableLaws = _lawConfig.GetAllLaws().ToList();
-            }
-
-            return _availableLaws[UnityEngine.Random.Range(0, _availableLaws.Count)];
         }
 
         private void UpdateLawsCount(int amount)
@@ -333,92 +255,128 @@ namespace Game.Features.Law
             OnLawsCountChanged?.Invoke(_lawsLeftToExecute);
         }
 
+        // Initializes the list of available laws based on the configuration and game data, and sets the active law if one is already selected.
+        private void InitializeLaws()
+        {
+            _lawsLeftToExecute = PlayerDataService.Instance.GetAvailableLawsCount();
+
+            string savedActiveLawId = PlayerDataService.Instance.GetActiveLawId();
+            var usedLawIds = PlayerDataService.Instance.GetUsedLawIds();
+            var allLaws = _lawConfig.GetAllLaws();
+
+            _availableLaws = new List<LawData>(allLaws.Count);
+
+            foreach (var law in allLaws)
+            {
+                if (law.Id == savedActiveLawId)
+                {
+                    _activeLaw = law;
+                }
+                else if (!usedLawIds.Contains(law.Id))
+                {
+                    _availableLaws.Add(law);
+                }
+            }
+        }
+
         #endregion
 
         #region Timer Logic
+
+        // Loads the timer state based on saved next refresh time.
+        private void InitializeTimer()
+        {
+            RegisterTimerEvents();
+
+            ProcessOfflineProgress();
+        }
+
+        private void RegisterTimerEvents()
+        {
+            _cooldownTimer.OnTickSeconds += NotifySecondsLeft;
+            _cooldownTimer.OnFinished += HandleTimerFinished;
+        }
+
+        private void NotifySecondsLeft()
+        {
+            int secondsLeft = Mathf.CeilToInt((float)_cooldownTimer.RemainingTime.TotalSeconds);
+            OnTimerSecondsTick?.Invoke(secondsLeft);
+        }
+
+        private void HandleTimerFinished()
+        {
+            UpdateLawsCount(1);
+
+            // If still hasn't fully replenished, setting the next replenish time based on the cooldown
+            if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
+            {
+                _cooldownTimer.Start(DateTime.UtcNow.AddSeconds(_lawConfig.ReplenishCooldownSeconds));
+
+                ILawDataWriter writer = PlayerDataService.Instance;
+                writer.SetNextLawRefreshTime(_cooldownTimer.TargetTime);
+            }
+        }
+
+        private void UnregisterTimerEvents()
+        {
+            _cooldownTimer.OnTickSeconds -= NotifySecondsLeft;
+            _cooldownTimer.OnFinished -= HandleTimerFinished;
+        }
 
         // Processes the offline progress for law replenishment based on the last saved next replenish time and the current time.
         private void ProcessOfflineProgress()
         {
             if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
 
-            if (DateTime.UtcNow >= _nextReplenishTime)
+            var nextReplenishTime = PlayerDataService.Instance.GetNextLawsRefreshTime();
+
+            // If the next replenish time is still in the future, we just start the timer with that target
+            if (DateTime.UtcNow < nextReplenishTime)
             {
-                TimeSpan passedTime = DateTime.UtcNow - _nextReplenishTime;
-
-                // +1 becouse the _nextReplenishTime was already reached, plus the number of full replenish cycles that passed since then
-                int lawsToRecover = 1 + (int)(passedTime.TotalSeconds / _lawConfig.ReplenishCooldownSeconds);
-                UpdateLawsCount(lawsToRecover);
-
-                // If still hasn't fully replenished, setting the next replenish time based on how many laws was recovered
-                if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
-                {
-                    _nextReplenishTime = _nextReplenishTime.AddSeconds(lawsToRecover * _lawConfig.ReplenishCooldownSeconds);
-
-                    ILawDataWriter writer = PlayerDataService.Instance;
-                    writer.SetNextLawRefreshTime(_nextReplenishTime);
-                }
-            }
-        }
-
-        // Handles the countdown timer logic and triggers events on tick.
-        private void HandleTimerTick()
-        {
-            if (_lawsLeftToExecute >= _lawConfig.MaxAvailableLaws) return;
-
-            TimeSpan diff = _nextReplenishTime - DateTime.UtcNow;
-
-            if (diff.TotalSeconds <= 0)
-            {
-                UpdateLawsCount(1);
-
-                // If still hasn't fully replenished, setting the next replenish time based on the cooldown
-                if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
-                {
-                    _nextReplenishTime = _nextReplenishTime.AddSeconds(_lawConfig.ReplenishCooldownSeconds);
-                    
-                    ILawDataWriter writer = PlayerDataService.Instance;
-                    writer.SetNextLawRefreshTime(_nextReplenishTime);
-                }
+                _cooldownTimer.Start(nextReplenishTime);
+                return;
             }
 
-            // UI-optimization: Only trigger the timer tick event when the integer value changes
-            int currentIntTimer = Mathf.CeilToInt((float)diff.TotalSeconds);
-            if (currentIntTimer != _lastIntTimer)
+            // else - calculating how many replenish cycles have passed since the next replenish time, and updating the laws count accordingly
+            TimeSpan passedTime = DateTime.UtcNow - nextReplenishTime;
+
+            // +1 becouse the _nextReplenishTime was already reached, plus the number of full replenish cycles that passed since then
+            int lawsToReplenish = 1 + (int)(passedTime.TotalSeconds / _lawConfig.ReplenishCooldownSeconds);
+            UpdateLawsCount(lawsToReplenish);
+
+            // If still hasn't fully replenished, setting the next replenish time based on how many laws were recovered
+            if (_lawsLeftToExecute < _lawConfig.MaxAvailableLaws)
             {
-                _lastIntTimer = currentIntTimer;
-                OnTimerTick?.Invoke(currentIntTimer);
+                _cooldownTimer.Start(nextReplenishTime.AddSeconds(lawsToReplenish * _lawConfig.ReplenishCooldownSeconds));
+
+                ILawDataWriter writer = PlayerDataService.Instance;
+                writer.SetNextLawRefreshTime(_cooldownTimer.TargetTime);
             }
+
         }
 
         #endregion
 
         #region IResourceLogicHandler Implementation
 
-        private void RegisterHandler()
+        private void RegisterPolicyHandlers()
         {
             if (TransactionService.Instance != null)
             {
-                foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+                foreach (var type in _policyTypes)
                 {
-                    if (type.IsPolicyValue())
-                    {
-                        TransactionService.Instance.RegisterHandler(type, this);
-                    }
+                    TransactionService.Instance.RegisterHandler(type, this);
                 }
             }
         }
 
-        private void UnregisterHandler()
+        private void UnregisterPolicyHandlers()
         {
             if (TransactionService.Instance != null)
             {
-                foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+                foreach (var type in _policyTypes)
                 {
-                    if (type.IsPolicyValue())
-                    {
-                        TransactionService.Instance.UnregisterHandler(type);
-                    }
+                    TransactionService.Instance.UnregisterHandler(type);
                 }
             }
         }
@@ -431,19 +389,9 @@ namespace Game.Features.Law
 
             int newAmount = currentAmount + delta;
 
-            // Calculating the "floor" for current level
-            int floorXp = 0;
-            int requiredXp = _lawConfig.BaseRequiredXpForLevel;
-            int tempXp = currentAmount;
+            var progressData = GetPolicyProgressData(type);
 
-            while (tempXp >= requiredXp)
-            {
-                tempXp -= requiredXp;
-                floorXp += requiredXp;
-                requiredXp += _lawConfig.XpIncreasePerLevel;
-            }
-
-            return Mathf.Max(newAmount, floorXp);
+            return Mathf.Max(newAmount, progressData.TotalFloorXp);
         }
 
         // For policies, we allow all transactions, but they will be adjusted in CalculateTransactionOperation

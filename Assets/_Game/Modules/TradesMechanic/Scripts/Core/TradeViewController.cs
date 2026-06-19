@@ -51,15 +51,9 @@ namespace Game.Features.Trade
             TradeLogicController.Instance.OnTradeGoodChanged += RefreshResourceRow;
             TradeLogicController.Instance.OnOffersListUpdated += RebuildOffersList;
 
-            if (TradeLogicController.Instance.IsDataReady)
-            {
-                // Force Sync (Update UI to match current logic state immediately)
-                ForceUpdateUI();
-            }
-            else
-            {
-                TradeLogicController.Instance.OnDataReady += ForceUpdateUI;
-            }
+            // Force Sync (Update UI to match current logic state immediately)
+            if (TradeLogicController.Instance.IsDataReady) RestoreViewState();
+            else TradeLogicController.Instance.OnDataReady += RestoreViewState;
         }
 
         private void OnDisable()
@@ -70,44 +64,25 @@ namespace Game.Features.Trade
             TradeLogicController.Instance.OnFreeTradesRefreshStatusChanged -= UpdateHeaderVisuals;
             TradeLogicController.Instance.OnTradeGoodChanged -= RefreshResourceRow;
             TradeLogicController.Instance.OnOffersListUpdated -= RebuildOffersList;
+            TradeLogicController.Instance.OnDataReady -= RestoreViewState;
         }
 
         #endregion
 
         #region View Initialization & Updates
 
-        private void ForceUpdateUI()
+        private void RestoreViewState()
         {
             UpdateHeaderVisuals(TradeLogicController.Instance.IsFreeTradesRefreshAvailable);
             RebuildOffersList(TradeLogicController.Instance.GetActiveOffers());
             InitializeResourceRows();
         }
 
-        private void InitializeResourceRows()
+        private void UpdateHeaderVisuals(bool isReady)
         {
-            var resources = TradeLogicController.Instance.GetPlayerResources();
-
-            foreach (var resource in resources)
-            {
-                if (!_spawnedRows.ContainsKey(resource.Type))
-                {
-                    var row = Instantiate(_resourceRowPrefab, _resourcesContainer);
-                    row.Initialize(resource.Type, OnUpgradeClicked);
-                    _spawnedRows.Add(resource.Type, row);
-                }
-
-                RefreshResourceRow(resource.Type);
-            }
-        }
-
-        private void RefreshResourceRow(ResourceType type)
-        {
-            if (_spawnedRows.TryGetValue(type, out var row))
-            {
-                var amount = TradeLogicController.Instance.GetResourceAmount(type);
-                var capacity = TradeLogicController.Instance.GetResourceCapacity(type);
-                row.UpdateView(amount, capacity);
-            }
+            _timerIconObject.SetActive(!isReady);
+            _refreshTimerText.gameObject.SetActive(!isReady);
+            _refreshButton.image.sprite = isReady ? _activeButtonSprite : _waitingButtonSprite;
         }
 
         private void RebuildOffersList(IReadOnlyList<TradeOfferData> offers)
@@ -138,6 +113,33 @@ namespace Game.Features.Trade
             }
         }
 
+        private void InitializeResourceRows()
+        {
+            var resources = TradeLogicController.Instance.GetPlayerResources();
+
+            foreach (var resource in resources)
+            {
+                if (!_spawnedRows.ContainsKey(resource.Type))
+                {
+                    var row = Instantiate(_resourceRowPrefab, _resourcesContainer);
+                    row.Initialize(resource.Type, OnStorageUpgradeClicked);
+                    _spawnedRows.Add(resource.Type, row);
+                }
+
+                RefreshResourceRow(resource.Type);
+            }
+        }
+
+        private void RefreshResourceRow(ResourceType type)
+        {
+            if (_spawnedRows.TryGetValue(type, out var row))
+            {
+                var amount = TradeLogicController.Instance.GetResourceAmount(type);
+                var capacity = TradeLogicController.Instance.GetStorageCapacity(type);
+                row.UpdateView(amount, capacity);
+            }
+        }
+
         private void UpdateTimer(int time)
         {
             if (time < 0) time = 0;
@@ -147,18 +149,11 @@ namespace Game.Features.Trade
             _refreshTimerText.text = $"{m:00}:{s:00}";
         }
 
-        private void UpdateHeaderVisuals(bool isReady)
-        {
-            _timerIconObject.SetActive(!isReady);
-            _refreshTimerText.gameObject.SetActive(!isReady);
-            _refreshButton.image.sprite = isReady ? _activeButtonSprite : _waitingButtonSprite;
-        }
-
         #endregion
 
         #region User Interaction Handlers
 
-        private void OnUpgradeClicked(ResourceType type)
+        private void OnStorageUpgradeClicked(ResourceType type)
         {
             // Prepare Data using Logic Controller
             var data = TradeLogicController.Instance.GetStorageUpgradeData(type);
@@ -248,14 +243,14 @@ namespace Game.Features.Trade
         {
             var canAfford = TradeLogicController.Instance.CanAffordOffer(offer, out bool hasStorageOverflow);
 
-            // Can be used to display warning popup later
-            // var isEnaughCapacity = TradeLogicController.Instance.IsEnaughCapacity(offer);
+            // show warning about storage overflow only if the player can afford the offer, to avoid confusion with the "can't afford" warning
+            bool displayOverflowStorageWarning = hasStorageOverflow && canAfford;
 
             var popupData = new AcceptOfferPopupData
             (
                 offer,
                 canAfford,
-                hasStorageOverflow,
+                displayOverflowStorageWarning,
                 onConfirmClick: () =>
                 {
                     TradeLogicController.Instance.TryExecuteOffer(offer);

@@ -75,6 +75,10 @@ MonoBehaviour:
     m_Key: Popups.AcceptOfferOverflowWarning
     m_Metadata:
       m_Items: []
+  - m_Id: 63064320467042304
+    m_Key: Popups.AcceptOffetCantAffordWarning
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

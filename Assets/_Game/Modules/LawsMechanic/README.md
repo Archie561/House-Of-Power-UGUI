@@ -11,29 +11,8 @@
 ## Інші елементи
 До інших елементів модуля входять:
 
-**Допоміжні класи (Helpers):** Клас для парсингу даних з TSV таблиці у обʼєкти LawData (**LawDataParser**)
+**Допоміжні класи (Helpers):** Клас для парсингу даних з TSV таблиці у обʼєкти LawData (**LawDataParser**), клас таймера (**LawCooldownTimer**) і клас обрахуку даних про рівень політики (**PolicyUpgradeCalculator**).
 
-**Класи-моделі (Models):** Містять чисті дані про об'єкт (**LawData**, **DetailedPolicyProgressData**) 
+**Класи-моделі (Models):** Містять чисті дані про об'єкт (**LawData**, **DetailedPolicyProgressData**, **LawsReplenishData** і т.д.).
 
-**Класи-в'ю (Views):** Пасивні компоненти, які відповідають виключно за відображення переданих їм даних в UI (**DetailedPolicyProgressView**, **LawView**, **PolicyProgressView**).
-
-
-
-# Law Mechanics Management
-This module is responsible for the logic, calculation, and display of all parameters within the law mechanics.
-
-## Core Elements
-**LawConfig**: Contains general mechanics settings that can be easily modified for testing (maximum number of laws, law restock price, policy experience cost, etc.). It also includes functionality for converting law data from a TSV table into a LawData object.
-
-**LawLogicController**: Responsible for the logic and calculation of all mechanics data. It updates experience values for policies, calculates the level based on experience, stores and modifies the number of laws available for adoption, stores the player's current active law, and handles law adoption, proposals, etc. It manages the timer and implements the **IResourceLogicHandler** interface to process transactions for policy resources. It contains public methods to provide the view with all necessary data.
-
-**LawViewController**: Receives raw data from the logic and passes it to the View. It is responsible for updating the interface and contains methods for handling user interactions with the UI. It does not directly modify player data; instead, it notifies the logic (LawLogicController) of the performed action, which then executes the required operation.
-
-## Other Elements
-Other elements of the module include:
-
-**Helper Classes (Helpers):** A class for parsing data from a TSV table into LawData objects (**LawDataParser**).
-
-**Model Classes (Models):** Contain pure data about the object (**LawData**, **DetailedPolicyProgressData**).
-
-**View Classes (Views):** Passive components strictly responsible for displaying the data passed to them in the UI (**DetailedPolicyProgressView**, **LawView**, **PolicyProgressView**).
+**Класи-в'ю (Views):** Пасивні компоненти, які відповідають за відображення переданих їм даних в UI (**DetailedPolicyProgressView**, **LawCardView**, **PolicyProgressView** і т.д.). Можуть містити методи для оновлення свого стану або виконання локальних анімацій.

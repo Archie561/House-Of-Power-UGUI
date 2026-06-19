@@ -53,7 +53,6 @@ namespace Game.General
             {
                 _isRunning = false;
                 OnFinished?.Invoke();
-                return;
             }
 
             // Optimization for events: invoke only if the integer second has changed

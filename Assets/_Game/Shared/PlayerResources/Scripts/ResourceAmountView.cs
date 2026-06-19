@@ -1,9 +1,8 @@
-using Game.General;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Features.Trade
+namespace Game.General
 {
     /// <summary>
     /// Displays a single resource icon and its amount (e.g., "+5 Wood" or "-10 Gold").

@@ -87,6 +87,10 @@ MonoBehaviour:
       resources!
     m_Metadata:
       m_Items: []
+  - m_Id: 63064320467042304
+    m_Localized: Not enaugh resources to accept an offer!
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

@@ -44,6 +44,22 @@ namespace Game.General
             }
         }
 
+        /// <summary>
+        /// Saves the provided player data to persistent storage in JSON format. If saving fails, logs an error message.
+        /// </summary>
+        public void SavePlayerData(PlayerData data)
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(data, Formatting.Indented);
+                File.WriteAllText(_saveFilePath, json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SaveLoadSystem] Failed to save data: {e.Message}");
+            }
+        }
+
         private PlayerData GenerateNewPlayerData()
         {
             // Initial Game State Configuration
@@ -76,22 +92,6 @@ namespace Game.General
                 _playerConfig.GetInitialLawId(),
                 _playerConfig.GetInitialLawsCount(),
                 nextLawRefresh);
-        }
-
-        /// <summary>
-        /// Saves the provided player data to persistent storage in JSON format. If saving fails, logs an error message.
-        /// </summary>
-        public void SavePlayerData(PlayerData data)
-        {
-            try
-            {
-                string json = JsonConvert.SerializeObject(data, Formatting.Indented);
-                File.WriteAllText(_saveFilePath, json);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[SaveLoadSystem] Failed to save data: {e.Message}");
-            }
         }
     }
 }

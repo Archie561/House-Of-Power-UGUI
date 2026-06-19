@@ -35,12 +35,12 @@ namespace Game.Features.Trade
         /// <summary>
         /// Calculates the default cost required to upgrade to the THIS level.
         /// </summary>
-        public int GetDefaultCostForLevel(int nextLevel)
+        public int GetDefaultCostForLevel(int level)
         {
-            int currentLevel = nextLevel - 1;
-            int currentCapacity = GetCapacityForLevel(currentLevel);
+            int previousLevel = level - 1;
+            int previousCapacity = GetCapacityForLevel(previousLevel);
 
-            float cost = currentCapacity * _settings.UpgradeCostFillRate;
+            float cost = previousCapacity * _settings.UpgradeCostFillRate;
 
             return RoundToSignificant(cost);
         }
@@ -48,9 +48,9 @@ namespace Game.Features.Trade
         /// <summary>
         /// Calculates the premium cost required to upgrade to the THIS level.
         /// </summary>
-        public int GetPremiumCostForLevel(int nextLevel)
+        public int GetPremiumCostForLevel(int level)
         {
-            float cost = _settings.BasePremiumCost * Mathf.Pow(_settings.PremiumCostMultiplier, nextLevel - 2);
+            float cost = _settings.BasePremiumCost * Mathf.Pow(_settings.PremiumCostMultiplier, level - 2);
             return Mathf.CeilToInt(cost);
         }
 
