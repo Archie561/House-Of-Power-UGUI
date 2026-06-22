@@ -10,6 +10,9 @@ namespace Game.General
         // Handlers that determine the logic of operations on resource values
         private Dictionary<ResourceType, IResourceLogicHandler> _logicHandlers = new Dictionary<ResourceType, IResourceLogicHandler>();
 
+        private IResourceDataWriter _dataWriter;
+        private readonly Dictionary<ResourceType, int> _simulationCache = new Dictionary<ResourceType, int>();
+
         private void Awake()
         {
             if (Instance != null)
@@ -20,6 +23,11 @@ namespace Game.General
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+
+        private void Start()
+        {
+            _dataWriter = PlayerDataService.Instance;
         }
 
         /// <summary>
@@ -53,14 +61,14 @@ namespace Game.General
         /// <returns>true if the transaction can be applied; otherwise, false.</returns>
         public bool CanApplyTransaction(IReadOnlyList<TransactionOperation> operations)
         {
-            var simulationCache = new Dictionary<ResourceType, int>();
+            _simulationCache.Clear();
 
             foreach (var op in operations)
             {
-                if (!simulationCache.ContainsKey(op.Type))
-                    simulationCache[op.Type] = PlayerDataService.Instance.GetResourceAmount(op.Type);
+                if (!_simulationCache.ContainsKey(op.Type))
+                    _simulationCache[op.Type] = _dataWriter.GetResourceAmount(op.Type);
 
-                int currentSimulated = simulationCache[op.Type];
+                int currentSimulated = _simulationCache[op.Type];
 
                 if (!op.ForceApply)
                 {
@@ -68,7 +76,7 @@ namespace Game.General
                         return false;
                 }
 
-                simulationCache[op.Type] = CalculateTransactionOperation(op.Type, currentSimulated, op.Amount);
+                _simulationCache[op.Type] = CalculateTransactionOperation(op.Type, currentSimulated, op.Amount);
             }
 
             return true;
@@ -79,7 +87,7 @@ namespace Game.General
         {
             if (operation.ForceApply) return true;
 
-            return CanApplyTransactionOperation(operation.Type, PlayerDataService.Instance.GetResourceAmount(operation.Type), operation.Amount);
+            return CanApplyTransactionOperation(operation.Type, _dataWriter.GetResourceAmount(operation.Type), operation.Amount);
         }
 
         /// <summary>
@@ -95,11 +103,10 @@ namespace Game.General
 
             foreach (var op in operations)
             {
-                int currentAmount = PlayerDataService.Instance.GetResourceAmount(op.Type);
+                int currentAmount = _dataWriter.GetResourceAmount(op.Type);
                 int newAmount = CalculateTransactionOperation(op.Type, currentAmount, op.Amount);
 
-                IResourceDataWriter writer = PlayerDataService.Instance;
-                writer.ApplyResourceChange(op.Type, currentAmount, newAmount);
+                _dataWriter.ApplyResourceChange(op.Type, currentAmount, newAmount);
             }
 
             return true;
@@ -110,11 +117,10 @@ namespace Game.General
         {
             if (!CanApplyTransaction(operation)) return false;
 
-            int currentAmount = PlayerDataService.Instance.GetResourceAmount(operation.Type);
+            int currentAmount = _dataWriter.GetResourceAmount(operation.Type);
             int newAmount = CalculateTransactionOperation(operation.Type, currentAmount, operation.Amount);
 
-            IResourceDataWriter writer = PlayerDataService.Instance;
-            writer.ApplyResourceChange(operation.Type, currentAmount, newAmount);
+            _dataWriter.ApplyResourceChange(operation.Type, currentAmount, newAmount);
 
             return true;
         }

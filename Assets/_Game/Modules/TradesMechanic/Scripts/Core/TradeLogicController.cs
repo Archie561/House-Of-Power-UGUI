@@ -2,7 +2,6 @@ using Game.General;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 
 namespace Game.Features.Trade
 {
@@ -19,15 +18,15 @@ namespace Game.Features.Trade
 
         // --- State ---
         private List<TradeOfferData> _activeOffersCache = new List<TradeOfferData>();
-        private static readonly ResourceType[] _tradeGoodTypes = Enum.GetValues(typeof(ResourceType))
-            .Cast<ResourceType>()
-            .Where(t => t.IsTradeGood())
-            .ToArray();
+        private static readonly ResourceType[] _tradeGoodTypes = BuildTradeGoodTypes();
 
         // --- Dependencies ---
         private TradeOfferGenerator _offerGenerator;
         private StorageUpgradeCalculator _storageUpgradeCalculator;
         private TradeCooldownTimer _cooldownTimer;
+
+        // --- Buffers ---
+        private List<ResourceAmount> _playerResourcesBuffer;
 
         // --- Events ---
         public event Action OnDataReady;
@@ -58,6 +57,8 @@ namespace Game.Features.Trade
             _cooldownTimer = new TradeCooldownTimer();
             _storageUpgradeCalculator = new StorageUpgradeCalculator(settings: _config.StorageSettings);
             _offerGenerator = new TradeOfferGenerator(settings: _config.GenerationSettings, capacityProvider: GetStorageCapacity);
+
+            _playerResourcesBuffer = new List<ResourceAmount>(_tradeGoodTypes.Length);
         }
 
         private void Start()
@@ -142,7 +143,12 @@ namespace Game.Features.Trade
 
             if (!TransactionService.Instance.TryApplyTransaction(transaction)) return false;
 
-            _activeOffersCache.Remove(offer);
+            int offerIndex = -1;
+            for (int i = 0; i < _activeOffersCache.Count; i++)
+            {
+                if (_activeOffersCache[i] == offer) { offerIndex = i; break; }
+            }
+            if (offerIndex >= 0) _activeOffersCache.RemoveAt(offerIndex);
 
             ITradeDataWriter writer = PlayerDataService.Instance;
             writer.SetActiveOffers(_activeOffersCache);
@@ -204,12 +210,15 @@ namespace Game.Features.Trade
         /// </summary>
         public IReadOnlyList<ResourceAmount> GetPlayerResources()
         {
-            var resources = new List<ResourceAmount>(_tradeGoodTypes.Length);
+            _playerResourcesBuffer.Clear();
 
-            foreach (var type in _tradeGoodTypes)
-                resources.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
+            for (int i = 0; i < _tradeGoodTypes.Length; i++)
+            {
+                ResourceType type = _tradeGoodTypes[i];
+                _playerResourcesBuffer.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
+            }
 
-            return resources.AsReadOnly();
+            return _playerResourcesBuffer.AsReadOnly();
         }
 
         /// <summary>
@@ -387,6 +396,28 @@ namespace Game.Features.Trade
         {
             int capacity = GetStorageCapacity(type);
             return Mathf.Clamp(currentAmount + delta, 0, capacity);
+        }
+
+        #endregion
+
+        #region Static Helpers
+
+        private static ResourceType[] BuildTradeGoodTypes()
+        {
+            Array values = Enum.GetValues(typeof(ResourceType));
+            var tempList = new List<ResourceType>(values.Length);
+            foreach (object value in values)
+            {
+                ResourceType type = (ResourceType)value;
+                if (type.IsTradeGood())
+                    tempList.Add(type);
+            }
+
+            ResourceType[] result = new ResourceType[tempList.Count];
+            for (int i = 0; i < tempList.Count; i++)
+                result[i] = tempList[i];
+
+            return result;
         }
 
         #endregion

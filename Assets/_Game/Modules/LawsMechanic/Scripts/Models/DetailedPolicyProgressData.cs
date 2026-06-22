@@ -6,7 +6,7 @@ namespace Game.Features.Law
     /// <summary>
     /// Data container to hold detailed progress information for a specific policy, used in the UI to display progress and handle buy actions.
     /// </summary>
-    public class DetailedPolicyProgressData
+    public readonly struct DetailedPolicyProgressData
     {
         public ResourceType Type {get;}
         public int Level {get; }

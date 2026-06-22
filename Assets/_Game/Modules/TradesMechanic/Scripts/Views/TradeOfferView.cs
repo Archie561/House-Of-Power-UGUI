@@ -22,6 +22,9 @@ namespace Game.Features.Trade
         [SerializeField] private CountryLibrary _countryLibrary;
         [SerializeField] private ResourceAmountView _resourceAmountPrefab;
 
+        private readonly List<ResourceAmountView> _importViewPool = new List<ResourceAmountView>(4);
+        private readonly List<ResourceAmountView> _exportViewPool = new List<ResourceAmountView>(4);
+
         /// <summary>
         /// Configures the card with offer data.
         /// </summary>
@@ -36,35 +39,56 @@ namespace Game.Features.Trade
                 _flagIcon.sprite = definition.FlagIcon;
             }
 
-            // Clear previous resources (Crucial for object reuse)
-            ClearContainer(_importTransform);
-            ClearContainer(_exportTransform);
+            // Deactivate all pooled views before reuse
+            DeactivatePool(_importViewPool);
+            DeactivatePool(_exportViewPool);
 
-            // Add new resources
-            AddResourcesView(data.Import, isExport: false);
-            AddResourcesView(data.Export, isExport: true);
+            // Add new resources using pooled views
+            PopulateResourceViews(data.Import, _importTransform, _importViewPool, isExport: false);
+            PopulateResourceViews(data.Export, _exportTransform, _exportViewPool, isExport: true);
 
             // Setup Click
             _cardButton.onClick.RemoveAllListeners();
             _cardButton.onClick.AddListener(() => onOfferClickCallback?.Invoke(data));
         }
 
-        private void ClearContainer(Transform container)
+        private void DeactivatePool(List<ResourceAmountView> pool)
         {
-            foreach (Transform child in container)
+            for (int i = 0; i < pool.Count; i++)
             {
-                Destroy(child.gameObject);
+                pool[i].gameObject.SetActive(false);
             }
         }
 
-        private void AddResourcesView(IReadOnlyList<ResourceAmount> resources, bool isExport)
+        private void PopulateResourceViews(IReadOnlyList<ResourceAmount> resources, Transform container,
+            List<ResourceAmountView> pool, bool isExport)
         {
             if (resources == null) return;
 
-            foreach (var resource in resources)
+            for (int i = 0; i < resources.Count; i++)
             {
-                var resourceView = Instantiate(_resourceAmountPrefab, isExport ? _exportTransform : _importTransform);
-                resourceView.Initialize(resource, isExport);
+                ResourceAmountView view;
+
+                if (i < pool.Count)
+                {
+                    // Reuse existing pooled view
+                    view = pool[i];
+                    view.gameObject.SetActive(true);
+                }
+                else
+                {
+                    // Pool exhausted — instantiate new view and add to pool
+                    view = Instantiate(_resourceAmountPrefab, container);
+                    pool.Add(view);
+                }
+
+                view.Initialize(resources[i], isExport);
+            }
+
+            // Deactivate any excess pool items beyond what's needed
+            for (int i = resources.Count; i < pool.Count; i++)
+            {
+                pool[i].gameObject.SetActive(false);
             }
         }
     }

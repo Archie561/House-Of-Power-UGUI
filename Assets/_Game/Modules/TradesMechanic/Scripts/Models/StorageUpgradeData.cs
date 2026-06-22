@@ -3,7 +3,7 @@ namespace Game.Features.Trade
     /// <summary>
     /// Data transfer object representing the storage upgrade information for a trade mechanic.
     /// </summary>
-    public class StorageUpgradeData
+    public readonly struct StorageUpgradeData
     {
         public int CurrentCapacity { get; }
         public int UpgradedCapacity { get; }

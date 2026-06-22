@@ -3,7 +3,7 @@ namespace Game.Features.Law
     /// <summary>
     /// Data transfer object representing the progress of a policy in the law mechanic.
     /// </summary>
-    public struct PolicyProgressData
+    public readonly struct PolicyProgressData
     {
         public int Level { get; }
         public int CurrentXp { get; }

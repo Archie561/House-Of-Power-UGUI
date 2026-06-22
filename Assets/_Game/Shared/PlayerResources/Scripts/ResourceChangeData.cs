@@ -6,12 +6,12 @@ namespace Game.General
     /// <remarks>Use this struct to track or report changes to resources, such as when updating resource values in a
     /// system. The Delta field indicates the difference between the new and old values, and may be positive or negative
     /// depending on whether the resource increased or decreased.</remarks>
-    public struct ResourceChangeData
+    public readonly struct ResourceChangeData
     {
-        public ResourceType Type;
-        public int OldValue;
-        public int NewValue;
-        public int Delta;
+        public readonly ResourceType Type;
+        public readonly int OldValue;
+        public readonly int NewValue;
+        public readonly int Delta;
 
         public ResourceChangeData(ResourceType type, int oldVal, int newVal)
         {

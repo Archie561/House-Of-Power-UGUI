@@ -29,6 +29,9 @@ namespace Game.Features.Popup
         [SerializeField] private ResourceAmountView _resourceAmountPrefab;
         [SerializeField, Range(0f, 1f)] private float _disableAlpha = 0.6f;
 
+        private readonly List<ResourceAmountView> _importViewPool = new List<ResourceAmountView>();
+        private readonly List<ResourceAmountView> _exportViewPool = new List<ResourceAmountView>();
+
         /// <summary>
         /// Initializes the popup with offer details, confirm and cancel buttons.
         /// </summary>
@@ -44,13 +47,16 @@ namespace Game.Features.Popup
                 _descriptionLocalizer.RefreshString();
             }
 
-            // Clear old views
-            ClearContainer(_importTransform);
-            ClearContainer(_exportTransform);
+            // Deactivate all pooled views
+            for (int i = 0; i < _importViewPool.Count; i++)
+                _importViewPool[i].gameObject.SetActive(false);
+
+            for (int i = 0; i < _exportViewPool.Count; i++)
+                _exportViewPool[i].gameObject.SetActive(false);
 
             // Populate new views
-            AddResourcesView(popupData.OfferData.Import, isExport: false);
-            AddResourcesView(popupData.OfferData.Export, isExport: true);
+            PopulateResourceViews(popupData.OfferData.Import, isExport: false, _importTransform, _importViewPool);
+            PopulateResourceViews(popupData.OfferData.Export, isExport: true, _exportTransform, _exportViewPool);
 
             // Set cant afford warning visibility
             _cantAffordOfferWarningText.gameObject.SetActive(!popupData.CanAfford);
@@ -74,22 +80,26 @@ namespace Game.Features.Popup
             _cancelButton.onClick.AddListener(() => popupData.OnCancelClick?.Invoke());
         }
 
-        private void ClearContainer(Transform container)
-        {
-            foreach (Transform child in container)
-            {
-                Destroy(child.gameObject);
-            }
-        }
-
-        private void AddResourcesView(IReadOnlyList<ResourceAmount> resources, bool isExport)
+        private void PopulateResourceViews(IReadOnlyList<ResourceAmount> resources, bool isExport, Transform container, List<ResourceAmountView> pool)
         {
             if (resources == null) return;
 
-            foreach (var resource in resources)
+            for (int i = 0; i < resources.Count; i++)
             {
-                var resourceView = Instantiate(_resourceAmountPrefab, isExport ? _exportTransform : _importTransform);
-                resourceView.Initialize(resource, isExport);
+                ResourceAmountView view;
+
+                if (i < pool.Count)
+                {
+                    view = pool[i];
+                    view.gameObject.SetActive(true);
+                }
+                else
+                {
+                    view = Instantiate(_resourceAmountPrefab, container);
+                    pool.Add(view);
+                }
+
+                view.Initialize(resources[i], isExport);
             }
         }
     }

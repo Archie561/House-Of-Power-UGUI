@@ -21,10 +21,21 @@ namespace Game.Features.Law
         private List<LawData> _availableLaws = new List<LawData>();
         private LawData _activeLaw;
         private int _lawsLeftToExecute;
-        private static readonly ResourceType[] _policyTypes = Enum.GetValues(typeof(ResourceType))
-            .Cast<ResourceType>()
-            .Where(t => t.IsPolicyValue())
-            .ToArray();
+        private static ResourceType[] BuildPolicyTypes()
+        {
+            var values = Enum.GetValues(typeof(ResourceType));
+            var result = new List<ResourceType>(values.Length);
+            foreach (ResourceType type in values)
+            {
+                if (type.IsPolicyValue())
+                    result.Add(type);
+            }
+            return result.ToArray();
+        }
+        private static readonly ResourceType[] _policyTypes = BuildPolicyTypes();
+
+        // --- Buffers ---
+        private List<ResourceAmount> _playerPoliciesBuffer;
 
         // --- Dependencies ---
         private LawCooldownTimer _cooldownTimer;
@@ -54,6 +65,7 @@ namespace Game.Features.Law
 
             _cooldownTimer = new LawCooldownTimer();
             _policyUpgradeCalculator = new PolicyUpgradeCalculator(_lawConfig, PlayerDataService.Instance.GetResourceAmount);
+            _playerPoliciesBuffer = new List<ResourceAmount>(_policyTypes.Length);
         }
 
         private void Start()
@@ -94,12 +106,12 @@ namespace Game.Features.Law
         /// </summary>
         public IReadOnlyList<ResourceAmount> GetPlayerPolicies()
         {
-            var resources = new List<ResourceAmount>(_policyTypes.Length);
+            _playerPoliciesBuffer.Clear();
 
             foreach (var type in _policyTypes)
-                resources.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
+                _playerPoliciesBuffer.Add(new ResourceAmount(type, PlayerDataService.Instance.GetResourceAmount(type)));
 
-            return resources.AsReadOnly();
+            return _playerPoliciesBuffer;
         }
 
         /// <summary>
@@ -226,6 +238,7 @@ namespace Game.Features.Law
             _activeLaw = null;
     
             ILawDataWriter writer = PlayerDataService.Instance;
+            writer.SetActiveLawId(null);
             writer.MarkLawAsUsed(law.Id);
 
             var effects = accepted ? law.OnAcceptEffects : law.OnRejectEffects;
@@ -268,7 +281,7 @@ namespace Game.Features.Law
 
             foreach (var law in allLaws)
             {
-                if (law.Id == savedActiveLawId)
+                if (law.Id == savedActiveLawId && _lawsLeftToExecute > 0)
                 {
                     _activeLaw = law;
                 }

@@ -9,5 +9,6 @@ namespace Game.General
     public interface IResourceDataWriter
     {
         void ApplyResourceChange(ResourceType type, int oldValue, int newValue);
+        int GetResourceAmount(ResourceType type);
     }
 }

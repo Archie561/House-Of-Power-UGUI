@@ -1,7 +1,6 @@
 using Game.General;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Game.Features.Trade
@@ -17,20 +16,35 @@ namespace Game.Features.Trade
         private readonly List<ResourceType> _tradableResources;
         private readonly List<CountryId> _countries;
 
+        private readonly List<ResourceType> _shuffleBuffer;
+        private readonly List<ResourceType> _exportTypesBuffer;
+        private readonly List<ResourceType> _importTypesBuffer;
+
         public TradeOfferGenerator(OfferGenerationSettings settings, Func<ResourceType, int> capacityProvider)
         {
             _settings = settings;
 
             _capacityProvider = capacityProvider;
 
-            _tradableResources = Enum.GetValues(typeof(ResourceType))
-                .Cast<ResourceType>()
-                .Where(t => t.IsTradeGood())
-                .ToList();
+            Array resourceValues = Enum.GetValues(typeof(ResourceType));
+            _tradableResources = new List<ResourceType>(resourceValues.Length);
+            foreach (object value in resourceValues)
+            {
+                ResourceType type = (ResourceType)value;
+                if (type.IsTradeGood())
+                    _tradableResources.Add(type);
+            }
 
-            _countries = Enum.GetValues(typeof(CountryId))
-                .Cast<CountryId>()
-                .ToList();
+            Array countryValues = Enum.GetValues(typeof(CountryId));
+            _countries = new List<CountryId>(countryValues.Length);
+            foreach (object value in countryValues)
+            {
+                _countries.Add((CountryId)value);
+            }
+
+            _shuffleBuffer = new List<ResourceType>(_tradableResources.Capacity);
+            _exportTypesBuffer = new List<ResourceType>(_tradableResources.Capacity);
+            _importTypesBuffer = new List<ResourceType>(_tradableResources.Capacity);
         }
 
         public TradeOfferData GenerateOffer()
@@ -39,21 +53,37 @@ namespace Game.Features.Trade
 
             // 1. Select Resources
             // We need unique resources for export and import so they don't overlap.
-            var shuffledRes = _tradableResources.OrderBy(x => UnityEngine.Random.value).ToList();
+            _shuffleBuffer.Clear();
+            for (int i = 0; i < _tradableResources.Count; i++)
+                _shuffleBuffer.Add(_tradableResources[i]);
+
+            // Fisher-Yates in-place shuffle
+            for (int i = _shuffleBuffer.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                ResourceType temp = _shuffleBuffer[i];
+                _shuffleBuffer[i] = _shuffleBuffer[j];
+                _shuffleBuffer[j] = temp;
+            }
 
             int exportCount = UnityEngine.Random.Range(_settings.MinItemsPerSide, _settings.MaxItemsPerSide + 1); // +1 because upper bound is exclusive
             int importCount = UnityEngine.Random.Range(_settings.MinItemsPerSide, _settings.MaxItemsPerSide + 1);
 
             // Validate counts against available definitions
-            int maxTotal = shuffledRes.Count;
+            int maxTotal = _shuffleBuffer.Count;
             if (exportCount + importCount > maxTotal)
             {
                 exportCount = maxTotal / 2;
                 importCount = maxTotal - exportCount;
             }
 
-            var exportTypes = shuffledRes.Take(exportCount).ToList();
-            var importTypes = shuffledRes.Skip(exportCount).Take(importCount).ToList();
+            _exportTypesBuffer.Clear();
+            for (int i = 0; i < exportCount; i++)
+                _exportTypesBuffer.Add(_shuffleBuffer[i]);
+
+            _importTypesBuffer.Clear();
+            for (int i = exportCount; i < exportCount + importCount; i++)
+                _importTypesBuffer.Add(_shuffleBuffer[i]);
 
             // 2. Determine Profitability Ratio first
             float exchangeRate = GetRandomExchangeRate();
@@ -61,11 +91,11 @@ namespace Game.Features.Trade
             // 3. Calculate Capacities (The Bottleneck Check)
 
             // A. Calculate max POTENTIAL export based on player's export storage
-            int maxPotentialExport = CalculateTotalCapacityScaled(exportTypes);
+            int maxPotentialExport = CalculateTotalCapacityScaled(_exportTypesBuffer);
 
             // B. Calculate max POSSIBLE import based on player's import storage
             // If we want to give player 1.5x profit, we must ensure they have space for it.
-            int maxPossibleImport = CalculateTotalCapacity(importTypes);
+            int maxPossibleImport = CalculateTotalCapacity(_importTypesBuffer);
 
             // 4. Calculate Target Amounts
             // We initially want to trade based on our export capacity potential
@@ -90,8 +120,8 @@ namespace Game.Features.Trade
 
             // 6. Distribute the calculated totals among the specific resources
             // We use weighted distribution based on individual resource capacity
-            var exports = DistributeAmountByCapacity(targetExportAmount, exportTypes);
-            var imports = DistributeAmountByCapacity(targetImportAmount, importTypes);
+            var exports = DistributeAmountByCapacity(targetExportAmount, _exportTypesBuffer);
+            var imports = DistributeAmountByCapacity(targetImportAmount, _importTypesBuffer);
 
             return new TradeOfferData(country, imports, exports);
         }
@@ -199,7 +229,11 @@ namespace Game.Features.Trade
             }
 
             // Cleanup: remove any 0-amount entries if distribution failed slightly
-            result.RemoveAll(x => x.Amount <= 0);
+            for (int i = result.Count - 1; i >= 0; i--)
+            {
+                if (result[i].Amount <= 0)
+                    result.RemoveAt(i);
+            }
 
             return result;
         }

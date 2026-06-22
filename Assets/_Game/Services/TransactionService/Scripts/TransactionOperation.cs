@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace Game.General
 {
     [Serializable]
     /// <summary> Struct representing a transaction operation for resources. </summary>
-    public struct TransactionOperation
+    public readonly struct TransactionOperation
     {
-        public ResourceType Type;
-        public int Amount;
-        public bool ForceApply;
+        public readonly ResourceType Type;
+        public readonly int Amount;
+        public readonly bool ForceApply;
 
         /// <summary>
         /// Initializes a new instance of the TransactionOperation struct with the specified resource type, amount, and optional force apply flag.
